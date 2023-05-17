@@ -1,15 +1,23 @@
 const ethers = require('ethers');
 const provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
-const pairAddress = '0x3412aaDa3f72a81828210F1A8fb7fd8f4bd32907';
-const pairAbi = require("../ABI/pair_abi.json");;
+const pairAddress = '0xfd13C46Bb7B722AF3E7Ead3b7236f939c0cd3adA';
+const pairAbi = require("../abi/pair_abi.json");;
 let pair = new ethers.Contract(pairAddress, pairAbi, provider);
+let counter = 0;
 
-// listen to Swap event
-pair.on("Swap", (amount0In, amount1In, amount0Out, amount1Out, to, event) => {
-  console.log(`swap event: 
-  amount0In: ${amount0In.toString()} 
-  amount1In: ${amount1In.toString()} 
-  amount0Out: ${amount0Out.toString()} 
-  amount1Out: ${amount1Out.toString()} 
-  to: ${to}`);
+pair.on("Swap", function() {
+  counter++;
+  const timestamp = new Date().toISOString();
+
+  console.log(`Listening no.#${counter} swap event  at ${timestamp}:`);
+  console.log(`transaction target address: ${arguments[3]}`);
+
+  // Check if argument 6 is an object, if so, stringify it
+  if (typeof arguments[6] === 'object' && arguments[6] !== null) {
+    console.log(`transaction details (argument 6): ${JSON.stringify(arguments[6], null, 2)}`);
+  } else {
+    console.log(`transaction details (argument 6): ${arguments[6]}`);
+  }
 });
+
+

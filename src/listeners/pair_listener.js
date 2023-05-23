@@ -1,7 +1,7 @@
 const ethers = require('ethers');
 const provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
 const pairAddress = '0xfd13C46Bb7B722AF3E7Ead3b7236f939c0cd3adA';
-const pairAbi = require("../abi/pair_abi.json");;
+const pairAbi = require("../abis/pair_abi.json");;
 let pair = new ethers.Contract(pairAddress, pairAbi, provider);
 let counter = 0;
 

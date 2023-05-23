@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
 const factoryAddress = '0xec10d31F75840c768C5b94A9094Fbac21BD985C9'; 
-const factoryAbi = require("../abi/factory_abi.json");
+const factoryAbi = require("../abis/factory_abi.json");
 
 let factory = new ethers.Contract(factoryAddress, factoryAbi, provider);
 

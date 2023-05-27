@@ -1,6 +1,6 @@
-# webservice
+# web-service
 
-A simple web service for AtDex Point System
+A simple web service for AtDex application
 
 
 - create table

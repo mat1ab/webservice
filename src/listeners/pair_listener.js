@@ -1,76 +1,60 @@
-const ethers = require('ethers');
-const pairAbi = require("../abis/pair_abi.json");
-const AWS = require('aws-sdk');
-AWS.config.update({region: 'us-east-1'});
+// const ethers = require('ethers');
+// const pairAbi = require("../abis/pair_abi.json");
+// const AWS = require('aws-sdk');
+// AWS.config.update({region: 'us-east-1'});
 
+// const providerUrl = 'wss://testnet.era.zksync.dev/ws';
+// const provider = new ethers.providers.WebSocketProvider(providerUrl);
+// const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
-const providerUrl = 'wss://testnet.era.zksync.dev/ws';
-const provider = new ethers.providers.WebSocketProvider(providerUrl);
-const dynamoDB = new AWS.DynamoDB.DocumentClient();
+// const pairAddresses = require('../assets/pair_address.json');
 
-const pairAddress = '0x1d44075F5A593Ce83d7e88FDC4494A234a0dCd58';
-const pairContract = new ethers.Contract(pairAddress, pairAbi, provider);
+// let counter = 0;
 
-let counter = 0;
-async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, metaData) {
-  const params = {
-    TableName: 'test-events', 
-    Item: {
-      'UserID': userID,
-      'TransactionHash': transactionHash,
-      'EventName': eventName,
-      'BlockNumber': blockNumber,
-      'MetaData': metaData,
-    }
-  };
+// async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, eventData, timestamp, pairAddress) {
+//   const params = {
+//     TableName: 'test-events', 
+//     Item: {
+//       'UserID': userID,
+//       'TransactionHash': transactionHash,
+//       'EventName': eventName,
+//       'BlockNumber': blockNumber,
+//       'EventData': eventData,
+//       'Timestamp': timestamp,
+//       'PairAddress': pairAddress,
+//     }
+//   };
 
-  try {
-    await dynamoDB.put(params).promise();
-    console.log(`Successfully stored event ${eventName} with transaction hash ${transactionHash}`);
-  } catch (err) {
-    console.error(`Error occurred when storing event: ${err}`);
-  }
-}
+//   try {
+//     await dynamoDB.put(params).promise();
+//     console.log(`Successfully stored event ${eventName} with transaction hash ${transactionHash}`);
+//   } catch (err) {
+//     console.error(`Error occurred when storing event: ${err}`);
+//   }
+// }
 
+// async function handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1Out, to, event) {
+//   try {
+//     counter++;
+//     const timestamp = new Date().toISOString();
+//     console.log(`Listening no.#${counter} swap event at ${timestamp}:`);
 
-pairContract.on('Swap', async (arg0, arg1, arg2, arg3, arg4, arg5, arg6, event) => {
-  try {
-      counter++;
-      const timestamp = new Date().toISOString();
-      
-      console.log(`Listening no.#${counter} swap event at ${timestamp}:`);
-      console.log(`transaction target address: ${arg3}`);
+//     console.log(`Transaction target address: ${to}`);
 
-      // Check if arg6 is an object, if so, stringify it
-      if (typeof arg6 === 'object' && arg6 !== null) {
-          console.log(`transaction details (arg6): ${JSON.stringify(arg6, null, 2)}`);
-          if(arg6.transactionHash){
-              console.log(`Transaction Hash: ${arg6.transactionHash}`);
-              console.log(`Address: ${arg6.address}`);
-              const userID =  arg6.args[5].toString();
-              const metaData = JSON.stringify(arg6); 
-              await storeEventToDynamoDB(userID, arg6.transactionHash, arg6.event, arg6.blockNumber, metaData);
-          } else {
-              console.log(`Transaction Hash not found`);
-          }
-      } else {
-          console.log(`transaction details (arg6): ${arg6}`);
-      }
-  } catch (error) {
-      console.error(`Pair listener: An error occurred while processing the swap event: ${error}`);
-  }
-});
+//     if(event.transactionHash){
+//       console.log(`Transaction Hash: ${event.transactionHash}`);
+//       console.log(`Address: ${event.address}`);
+//       const eventData = JSON.stringify(event); 
+//       await storeEventToDynamoDB(userID, event.transactionHash, event.event, event.blockNumber, eventData, timestamp, event.address);
+//     } else {
+//       console.log(`Transaction Hash not found`);
+//     }
+//   } catch (error) {
+//     console.error(`Pair listener: An error occurred while processing the swap event: ${error}`);
+//   }
+// }
 
-
-
-provider.on('error', (error) => {
-    console.error(`Provider error: ${error}`);
-});
-
-provider.on('open', () => {
-    console.log(`Connected to ${providerUrl}`);
-});
-
-provider.on('close', () => {
-    console.log(`Connection closed`);
-});
+// pairAddresses.forEach(pairAddress => {
+//   const pairContract = new ethers.Contract(pairAddress, pairAbi, provider);
+//   pairContract.on('Swap', handleSwapEvent);
+// });

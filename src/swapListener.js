@@ -1,12 +1,18 @@
 
 const ethers = require('ethers');
 const pairAbi = require("./abis/pair_abi.json");
-const AWS = require('aws-sdk');
+const AWS = require('aws-sdk'),
+      {
+        DynamoDBDocument
+      } = require("@aws-sdk/lib-dynamodb"),
+      {
+        DynamoDB
+      } = require("@aws-sdk/client-dynamodb");
 AWS.config.update({region: 'us-east-1'});
 
 const pairAddresses = require('./assets/pair_address.json');
 
-const dynamoDB = new AWS.DynamoDB.DocumentClient();
+const dynamoDB = DynamoDBDocument.from(new DynamoDB());
 
 let counter = 0;
 let chalk;
@@ -30,7 +36,7 @@ async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNum
   };
 
   try {
-    await dynamoDB.put(params).promise();
+    await dynamoDB.put(params);
     console.log(`Successfully stored event ${eventName} with transaction hash ${transactionHash}`);
   } catch (err) {
     console.error(chalk.red(`Error occurred when storing event: ${err}`));

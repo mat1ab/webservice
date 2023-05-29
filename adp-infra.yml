@@ -414,11 +414,10 @@ Resources:
        - !Ref EC2InstanceIAMRole
 
 
-
-
   ## Create the DynamoDB 
   EventsTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
     Properties:
       TableName: !Ref DynamoDBTableOne
       AttributeDefinitions:

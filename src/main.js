@@ -1,3 +1,4 @@
+const logger = require('../src/config/winston')
 const ethers = require('ethers');
 const SwapListener = require('./swapListener');
 
@@ -7,6 +8,7 @@ let provider;
 function keepAlive() {
   setInterval(async () => {
     try {
+      logger.info("Keep alive: latest block is ", await provider.getBlockNumber())
       console.log("Keep alive: latest block is ", await provider.getBlockNumber());
     } catch (err) {
       console.error("Error occurred in keepAlive: ", err);
@@ -37,3 +39,4 @@ function connectToProvider() {
 }
 
 connectToProvider();
+

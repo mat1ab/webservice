@@ -2,6 +2,10 @@
 
 A simple web service for AtDex application
 
+- build AMI
+```
+Packer build ami.prk.hcl
+```
 
 - create table
 ```

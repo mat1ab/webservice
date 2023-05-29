@@ -21,6 +21,7 @@ function connectToProvider() {
   provider = new ethers.providers.WebSocketProvider(providerUrl);
 
   provider.on("error", () => {
+    logger.error("WebSocket error occurred, trying to reconnect...");
     console.error("WebSocket error occurred, trying to reconnect...");
     setTimeout(connectToProvider, 3000);
   });

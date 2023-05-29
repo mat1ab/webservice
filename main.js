@@ -8,10 +8,10 @@ let provider;
 function keepAlive() {
   setInterval(async () => {
     try {
-      logger.info("Keep alive: latest block is ", await provider.getBlockNumber())
+      logger.info("Keep alive: latest block is " + await provider.getBlockNumber())
       console.log("Keep alive: latest block is ", await provider.getBlockNumber());
     } catch (err) {
-      logger.error("Error occurred in keepAlive: ", err);
+      logger.error("Error occurred in keepAlive: " + err);
       console.error("Error occurred in keepAlive: ", err);
     }
   }, 30000);  // 30 seconds

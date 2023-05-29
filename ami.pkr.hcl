@@ -3,10 +3,10 @@ variable "aws_region" {
   default = "us-east-1"
 }
 
-variable "source_ami" {
-  type    = string
-  default = "ami-053b0d53c279acc90" # Ubuntu 22.04 LTS
-}
+// variable "source_ami" {
+//   type    = string
+//   default = "ami-053b0d53c279acc90" # Ubuntu 22.04 LTS
+// }
 
 variable "ssh_username" {
   type    = string
@@ -16,6 +16,14 @@ variable "ssh_username" {
 variable "subnet_id" {
   type    = string
   default = "subnet-04f599870b6b3d51d"
+}
+
+source_ami_filter {
+  filters = {
+    "virtualization-type" = "hvm"
+    "name"                = "ubuntu-pro-server*20.04-amd64*"
+    "root-device-type"    = "ebs"
+  }
 }
 
 

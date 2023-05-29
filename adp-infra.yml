@@ -2,6 +2,32 @@ AWSTemplateFormatVersion: 2010-09-09
 
 Description: This template creates the VPC, Security groups, EC2 instance and DynamoDB table.
 
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "VPC CIDR"
+        Parameters:
+          - VpcCIDR
+      - 
+        Label:
+          default: "Subnet CIDR"
+        Parameters:
+          - PublicSubnetCIDR
+
+      - 
+        Label:  
+          default: "EC2 Parameters"
+        Parameters:
+          - InstanceType
+          - EC2InstanceSecurityGroupName
+          - KeyName
+          - AmazonImageID
+
+
+
+
 Parameters:
   VpcCIDR:
     Description: Please enter the IP range (CIDR notation) for this VPC
@@ -27,7 +53,7 @@ Parameters:
   AmazonImageID:
     Description: The ID of Amazon Machine Image(AMI)
     Type: String
-    Default: "ami-00726cda799b175c2"
+    Default: "ami-053b0d53c279acc90"
 
   DynamoDBTableOne:
     Description: ADP test
@@ -42,6 +68,13 @@ Parameters:
   #   Default: '0.0.0.0/0'
   #   AllowedPattern: '(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})'
   #   ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+
+
+  KeyName:
+    Description: Name of a EC2 KeyPair to enable SSH access to the instance
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: aws-01
+    ConstraintDescription: Must be the name of an existing EC2 KeyPair
 
 Resources:
   VPC:
@@ -69,7 +102,17 @@ Resources:
     Properties: 
       GroupDescription: WebService application
       VpcId: !Ref VPC
-      SecurityGroupIngress: 
+          
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
@@ -77,6 +120,7 @@ Resources:
       Tags: 
         - Key: Name
           Value: EC2 Security Group
+
 
   WebAppLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
@@ -86,11 +130,20 @@ Resources:
         InstanceType: !Ref InstanceType
         SecurityGroupIds: 
           - !GetAtt EC2InstanceSecurityGroup.GroupId
+        KeyName: !Ref KeyName
         ImageId: !Ref AmazonImageID
         IamInstanceProfile: 
           Arn: !GetAtt 
             - EC2InstanceProfile
             - Arn
+        BlockDeviceMappings:
+          - DeviceName: "/dev/sda1"
+            Ebs:
+              VolumeType: "gp3"
+              VolumeSize: "20"
+              DeleteOnTermination: "true"
+              Encrypted: true
+              KmsKeyId: !GetAtt EBSKey.Arn
         UserData:
           Fn::Base64: 
             !Sub |
@@ -213,6 +266,89 @@ Resources:
         - AttributeName: TransactionHash
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
+
+  EBSKey:
+    Type: AWS::KMS::Key
+    Properties: 
+      Description: This Customer managed key is used for encrypted EBS volume.
+      EnableKeyRotation: true
+      KeyPolicy: 
+        Version: "2012-10-17"
+        Id: "EBS-key"
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Join 
+                - ''
+                - - 'arn:aws:iam::'
+                  - !Ref 'AWS::AccountId'
+                  - ':root'
+            Action: 
+              - "kms:*"
+            Resource: '*'
+          - Sid: "Allow access for Key Administrators"
+            Effect: Allow
+            Principal:
+              AWS: !Join
+                - ''
+                - - 'arn:aws:iam::'
+                  - !Ref 'AWS::AccountId'
+                  - ':user/mario_prod'
+            Action:
+              - kms:Create*
+              - kms:Describe*
+              - kms:Enable*
+              - kms:List*
+              - kms:Put*
+              - kms:Update*
+              - kms:Revoke*
+              - kms:Disable*
+              - kms:Get*
+              - kms:Delete*
+              - kms:TagResource
+              - kms:UntagResource
+              - kms:ScheduleKeyDeletion
+              - kms:CancelKeyDeletion
+            Resource: "*"
+          - Sid: "Allow use of the key"
+            Effect: Allow
+            Principal:
+              AWS: !Join 
+                - ''
+                - - 'arn:aws:iam::'
+                  - !Ref 'AWS::AccountId'
+                  - ':role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling'
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: '*'
+          - Sid: "Allow attachment of persistent resources"
+            Effect: Allow
+            Principal:
+              AWS: !Join 
+                - ''
+                - - 'arn:aws:iam::'
+                  - !Ref 'AWS::AccountId'
+                  - ':role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling'
+            Action:
+              - kms:CreateGrant
+              - kms:ListGrants
+              - kms:RevokeGrant
+            Resource: '*'
+            Condition: 
+              Bool:
+                kms:GrantIsForAWSResource: true
+
+  EBSKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/ebsKey
+      TargetKeyId: !Ref EBSKey
+
 
 Outputs:
   InstanceType:

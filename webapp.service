@@ -6,7 +6,7 @@ After=network.target
 Type=idle
 Restart=on-failure
 User=ubuntu
-ExecStart=/bin/bash -c 'cd ~/webservice && sudo ./start.sh'
+ExecStart=/bin/bash -c 'cd ~/webservice && sudo ./start'
 
 [Install]
 WantedBy=default.target

@@ -337,7 +337,13 @@ Resources:
               WEBAPP_ROOT=/home/ubuntu/webservice
               cd $WEBAPP_ROOT
 
-              # add webservice to systemd
+              # Make sure start script is executable
+              sudo chmod +x start
+
+              # Run npm install to install dependencies
+              npm install
+
+              # Add webservice to systemd
               apt-get install -y systemd
               cp ./webapp.service /etc/systemd/system
               chmod 644 /etc/systemd/system/webapp.service
@@ -345,7 +351,7 @@ Resources:
               systemctl enable webapp.service
               systemctl start webapp.service
               
-              # set up CloudWatch 
+              # Set up CloudWatch 
               sudo cp cloudwatch_config.json /opt/cloudwatch-config.json
               sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/cloudwatch-config.json -s
 

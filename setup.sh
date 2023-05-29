@@ -22,10 +22,10 @@ sleep 15
 unzip /home/ubuntu/webservice.zip -d /home/ubuntu/webservice
 sudo rm -rf /home/ubuntu/webservice.zip
 
-# Install global-bundle.pem for RDS
-sleep 5
-cd /home/ubuntu
-wget https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+# # Install global-bundle.pem for RDS
+# sleep 5
+# cd /home/ubuntu
+# wget https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
 
 # Move file and install dependencies
 sleep 15

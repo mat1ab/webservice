@@ -250,12 +250,12 @@ Resources:
         - Key: Name
           Value: Private Route Table
   
-  # Create Private Route
-  PrivateRoute:
-    Type: AWS::EC2::Route
-    Properties: 
-      RouteTableId: !Ref PrivateRouteTable
-      DestinationCidrBlock: 10.0.0.0/16
+  # # Create Private Route
+  # PrivateRoute:
+  #   Type: AWS::EC2::Route
+  #   Properties: 
+  #     RouteTableId: !Ref PrivateRouteTable
+  #     DestinationCidrBlock: 10.0.0.0/16
 
   PrivateSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -311,10 +311,8 @@ Resources:
           - !GetAtt EC2InstanceSecurityGroup.GroupId
         KeyName: !Ref KeyName
         ImageId: !Ref AmazonImageID
-        IamInstanceProfile: 
-          Arn: !GetAtt 
-            - EC2InstanceProfile
-            - Arn
+        IamInstanceProfile:
+          Name: !Ref EC2InstanceProfile
         BlockDeviceMappings:
           - DeviceName: "/dev/sda1"
             Ebs:
@@ -335,9 +333,22 @@ Resources:
               sudo apt-get upgrade -y
               sleep 5
 
-               # Start the application
-              cd /home/ubuntu/webservice
-              sudo npm start
+              # Start the application
+              WEBAPP_ROOT=/home/ubuntu/webservice
+              cd $WEBAPP_ROOT
+
+              # add webservice to systemd
+              apt-get install -y systemd
+              cp ./webapp.service /etc/systemd/system
+              chmod 644 /etc/systemd/system/webapp.service
+              systemctl daemon-reload
+              systemctl enable webapp.service
+              systemctl start webapp.service
+              
+              # set up CloudWatch 
+              sudo cp cloudwatch_config.json /opt/cloudwatch-config.json
+              sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/cloudwatch-config.json -s
+
   asgWebApp:
       Type: AWS::AutoScaling::AutoScalingGroup
       Properties:
@@ -453,7 +464,8 @@ Resources:
                 - ''
                 - - 'arn:aws:iam::'
                   - !Ref 'AWS::AccountId'
-                  - ':user/mikedemo'
+                  - ':user/mario_prod'
+
             Action:
               - kms:Create*
               - kms:Describe*
@@ -501,6 +513,7 @@ Resources:
             Condition: 
               Bool:
                 kms:GrantIsForAWSResource: true
+
 
   EBSKeyAlias:
     Type: AWS::KMS::Alias

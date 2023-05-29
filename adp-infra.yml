@@ -27,21 +27,21 @@ Parameters:
   AmazonImageID:
     Description: The ID of Amazon Machine Image(AMI)
     Type: String
-    Default: "ami-00abf8199582bbab5"
+    Default: "ami-00726cda799b175c2"
 
   DynamoDBTableOne:
     Description: ADP test
     Type: String
     Default: "test-events"
 
-  SSHLocation:
-    Description: The IP address range that can be used to SSH to the EC2 instances
-    Type: String
-    MinLength: '9'
-    MaxLength: '18'
-    Default: '0.0.0.0/0'
-    AllowedPattern: '(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})'
-    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+  # SSHLocation:
+  #   Description: The IP address range that can be used to SSH to the EC2 instances
+  #   Type: String
+  #   MinLength: '9'
+  #   MaxLength: '18'
+  #   Default: '0.0.0.0/0'
+  #   AllowedPattern: '(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})'
+  #   ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
 
 Resources:
   VPC:
@@ -73,7 +73,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          CidrIp: !Ref SSHLocation
+          CidrIp: 0.0.0.0/0
       Tags: 
         - Key: Name
           Value: EC2 Security Group

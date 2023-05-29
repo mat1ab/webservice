@@ -1,6 +1,6 @@
-const logger = require('../src/config/winston')
+const logger = require('./src/config/winston')
 const ethers = require('ethers');
-const SwapListener = require('./swapListener');
+const SwapListener = require('./src/swapListener');
 
 const providerUrl = 'wss://testnet.era.zksync.dev/ws';
 let provider;

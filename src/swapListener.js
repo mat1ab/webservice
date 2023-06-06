@@ -14,7 +14,7 @@ import('chalk').then((module) => {
   chalk = module.default;
 });
 
-async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, eventData, timestamp, pairAddress) {
+async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, eventData, timestamp, pairAddress, amount0In, amount1In, amount0Out, amount1Out) {
   const params = {
     TableName: 'ADP1', 
     Item: {
@@ -29,7 +29,7 @@ async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNum
       'Amount0Out': amount0Out,
       'Amount1Out': amount1Out,
       'HasSwapped': 1, 
-      'EventData': eventData,
+      'EventData': eventData
     }
   };
 
@@ -44,16 +44,33 @@ async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNum
 async function handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1Out, to, event) {
   try {
     counter++;
-    const timestamp = new Date().toISOString();
+    const timestamp = Math.floor(Date.now() / 1000);
+    const userID = event.args[event.args.length - 1];
+    const amount0In = event.args[1];
+    const amount1In = event.args[2];
+    const amount0Out = event.args[3];
+    const amount1Out = event.args[4];
     console.log(chalk.green(`Listening no.#${counter} swap event at ${timestamp}:`));
 
     console.log(`Transaction target address: ${to}`);
 
-    if(event.transactionHash){
+    if (event.transactionHash) {
       console.log(`Transaction Hash: ${event.transactionHash}`);
       console.log(`Address: ${event.address}`);
-      const eventData = JSON.stringify(event); 
-      await storeEventToDynamoDB(userID, timestamp, event.transactionHash, event.event, event.blockNumber, event.address,amount0In, amount1In, amount0Out, amount1Out, 1, eventData);
+      const eventData = JSON.stringify(event);
+      await storeEventToDynamoDB(
+        userID,
+        event.transactionHash,
+        event.event,
+        event.blockNumber,
+        eventData,
+        timestamp,
+        event.address,
+        amount0In,
+        amount1In,
+        amount0Out,
+        amount1Out
+      );
     } else {
       console.log(chalk.red(`Pair listener: Transaction Hash not found`));
     }

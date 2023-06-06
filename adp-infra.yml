@@ -532,8 +532,114 @@ Resources:
       AliasName: alias/ebsKey
       TargetKeyId: !Ref EBSKey
 
+  MyLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: CheckUserSwap
+      Handler: lambda_function.lambda_handler
+      Role: !Join
+      - ''
+      - - 'arn:aws:iam::'
+        - !Ref 'AWS::AccountId'
+        - ':role/m_lambda'
+      Code:
+        ZipFile: |
+          import boto3
+          import jsons
+
+          def lambda_handler(event, context):
+              dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+              table = dynamodb.Table('ADP1')
+              
+              userID = event.get('userID', None)
+              
+              if not userID:
+                  return {
+                      'statusCode': 400,
+                      'body': json.dumps('Missing userID')
+                  }
+                  
+              try:
+                  response = table.get_item(
+                      Key={
+                          'UserID': userID
+                      }
+                  )
+              except Exception as e:
+                  print(e)
+                  return {
+                      'statusCode': 500,
+                      'body': json.dumps('Error reading from DynamoDB')
+                  }
+                  
+              item = response.get('Item', None)
+              if item and item.get('HasSwapped', 0) == 1:
+                  return {
+                      'statusCode': 200,
+                      'body': json.dumps({'swap': 1})
+                  }
+              else:
+                  return {
+                      'statusCode': 200,
+                      'body': json.dumps({'swap': 0})
+                  }
+      Runtime: python3.8
+      Timeout: 10
+
+  MyApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: MyApi
+
+  MyResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref MyApi
+      ParentId: !GetAtt 
+        - MyApi
+        - RootResourceId
+      PathPart: myresource
+
+  MyGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref MyApi
+      ResourceId: !Ref MyResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: 
+          Fn::Sub: 
+            - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+            - lambdaArn: !GetAtt MyLambdaFunction.Arn
+        IntegrationResponses:
+          - StatusCode: 200
+        PassthroughBehavior: WHEN_NO_MATCH
+      MethodResponses:
+        - StatusCode: 200
+
+  MyLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref MyLambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: 
+        Fn::Sub: 
+          - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiId}/*
+          - apiId: !Ref MyApi
 
 Outputs:
+  MyApiUrl:
+    Value: 
+      Fn::Sub: 
+        - https://${apiId}.execute-api.${AWS::Region}.amazonaws.com/${stageName}
+        - apiId: !Ref MyApi
+          stageName: 'prod'
+    Description: URL of the API Gateway
+
   ## Export VPC ID
   VPC:
     Description: VPC ID

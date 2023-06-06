@@ -14,22 +14,22 @@ import('chalk').then((module) => {
   chalk = module.default;
 });
 
-async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, eventData, timestamp, pairAddress, amount0In, amount1In, amount0Out, amount1Out) {
+async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, eventData, timestamp, pairAddress, amount0In, amount1In, amount0Out, amount1Out, hasSwapped) {
   const params = {
     TableName: 'ADP1', 
     Item: {
-      'UserID': userID, 
-      'Timestamp': timestamp,
+      'UserID': userID,
       'TransactionHash': transactionHash,
       'EventName': eventName,
       'BlockNumber': blockNumber,
+      'EventData': eventData,
+      'Timestamp': timestamp,
       'PairAddress': pairAddress,
       'Amount0In': amount0In,
       'Amount1In': amount1In,
       'Amount0Out': amount0Out,
       'Amount1Out': amount1Out,
-      'HasSwapped': 1, 
-      'EventData': eventData
+      'HasSwapped': hasSwapped, 
     }
   };
 
@@ -45,6 +45,7 @@ async function handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1
   try {
     counter++;
     const timestamp = Math.floor(Date.now() / 1000);
+    const hasSwapped = 1;
     const userID = event.args[event.args.length - 1];
     const amount0In = event.args[1];
     const amount1In = event.args[2];
@@ -69,7 +70,8 @@ async function handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1
         amount0In,
         amount1In,
         amount0Out,
-        amount1Out
+        amount1Out,
+        hasSwapped
       );
     } else {
       console.log(chalk.red(`Pair listener: Transaction Hash not found`));
@@ -82,12 +84,9 @@ async function handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1
 function start(provider) {
   pairAddresses.forEach(pairAddress => {
     const pairContract = new ethers.Contract(pairAddress, pairAbi, provider);
-    pairContract.on('Swap', (userID, amount0In, amount1In, amount0Out, amount1Out, to, event) => 
-      handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1Out, to, event)
-    );
+    pairContract.on('Swap', handleSwapEvent);
   });
 }
-
 
 module.exports = {
   start

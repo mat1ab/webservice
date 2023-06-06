@@ -99,9 +99,9 @@ Parameters:
     Default: "ami-00abf8199582bbab5"
 
   DynamoDBTableOne:
-    Description: events test
+    Description: ADP season 1
     Type: String
-    Default: "test-events"
+    Default: "ADP1"
   
 Resources:
   ## Create the VPC
@@ -419,8 +419,6 @@ Resources:
       Roles: 
        - !Ref EC2InstanceIAMRole
 
-
-  ## Create the DynamoDB 
   EventsTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -429,17 +427,25 @@ Resources:
       AttributeDefinitions:
         - AttributeName: UserID
           AttributeType: S
-        - AttributeName: TransactionHash
+        - AttributeName: Timestamp
+          AttributeType: N
+        - AttributeName: EventType
           AttributeType: S
       KeySchema:
         - AttributeName: UserID
           KeyType: HASH
-        - AttributeName: TransactionHash
+        - AttributeName: Timestamp
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
-      TimeToLiveSpecification: 
-        AttributeName: TTL
-        Enabled: true
+      GlobalSecondaryIndexes:
+      - IndexName: EventTypeIndex
+        KeySchema:
+          - AttributeName: EventType
+            KeyType: HASH
+          - AttributeName: Timestamp
+            KeyType: RANGE
+        Projection:
+          ProjectionType: ALL
 
   
   EBSKey:

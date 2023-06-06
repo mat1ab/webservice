@@ -5,16 +5,26 @@ const SwapListener = require('./src/swapListener');
 const providerUrl = 'wss://testnet.era.zksync.dev/ws';
 let provider;
 
-function keepAlive() {
-  setInterval(async () => {
-    try {
-      logger.info("Keep alive: latest block is " + await provider.getBlockNumber())
-      console.log("Keep alive: latest block is ", await provider.getBlockNumber());
-    } catch (err) {
-      logger.error("Error occurred in keepAlive: " + err);
-      console.error("Error occurred in keepAlive: ", err);
-    }
-  }, 30000);  // 30 seconds
+async function keepAlive() {
+  try {
+    logger.info("Keep alive: latest block is " + await provider.getBlockNumber());
+    console.log("Keep alive: latest block is ", await provider.getBlockNumber());
+  } catch (err) {
+    logger.error("Error occurred in keepAlive: ${err}");
+    console.error("Error occurred in keepAlive: ", err);
+  } finally {
+    setTimeout(keepAlive, 30000);  // 30 seconds
+  }
+}
+
+async function startSwapListener() {
+  try {
+    await SwapListener.start(provider);
+  } catch (err) {
+    logger.error(`Error occurred in SwapListener.start: ${err}`);
+    console.error("Error occurred in SwapListener.start:", err);
+    setTimeout(startSwapListener, 30000);  // 30 seconds
+  }
 }
 
 function connectToProvider() {
@@ -23,22 +33,21 @@ function connectToProvider() {
   provider.on("error", () => {
     logger.error("WebSocket error occurred, trying to reconnect...");
     console.error("WebSocket error occurred, trying to reconnect...");
-    setTimeout(connectToProvider, 3000);
+    setTimeout(connectToProvider, 30000);
   });
 
   provider.on("close", () => {
     console.error("WebSocket connection closed, trying to reconnect...");
-    setTimeout(connectToProvider, 3000);
+    setTimeout(connectToProvider, 30000);
   });
 
   provider.on("end", () => {
     console.error("WebSocket connection ended, trying to reconnect...");
-    setTimeout(connectToProvider, 3000);
+    setTimeout(connectToProvider, 30000);
   });
 
-  SwapListener.start(provider);
+  startSwapListener();
   keepAlive();
 }
 
 connectToProvider();
-

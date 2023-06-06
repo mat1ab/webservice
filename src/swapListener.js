@@ -1,4 +1,3 @@
-
 const ethers = require('ethers');
 const pairAbi = require("./abis/pair_abi.json");
 const AWS = require('aws-sdk');
@@ -17,15 +16,20 @@ import('chalk').then((module) => {
 
 async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, eventData, timestamp, pairAddress) {
   const params = {
-    TableName: 'test-events', 
+    TableName: 'ADP1', 
     Item: {
-      'UserID': userID,
+      'UserID': userID, 
+      'Timestamp': timestamp,
       'TransactionHash': transactionHash,
       'EventName': eventName,
       'BlockNumber': blockNumber,
-      'EventData': eventData,
-      'Timestamp': timestamp,
       'PairAddress': pairAddress,
+      'Amount0In': amount0In,
+      'Amount1In': amount1In,
+      'Amount0Out': amount0Out,
+      'Amount1Out': amount1Out,
+      'HasSwapped': 1, 
+      'EventData': eventData,
     }
   };
 
@@ -49,7 +53,7 @@ async function handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1
       console.log(`Transaction Hash: ${event.transactionHash}`);
       console.log(`Address: ${event.address}`);
       const eventData = JSON.stringify(event); 
-      await storeEventToDynamoDB(userID, event.transactionHash, event.event, event.blockNumber, eventData, timestamp, event.address);
+      await storeEventToDynamoDB(userID, timestamp, event.transactionHash, event.event, event.blockNumber, event.address,amount0In, amount1In, amount0Out, amount1Out, 1, eventData);
     } else {
       console.log(chalk.red(`Pair listener: Transaction Hash not found`));
     }
@@ -61,9 +65,12 @@ async function handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1
 function start(provider) {
   pairAddresses.forEach(pairAddress => {
     const pairContract = new ethers.Contract(pairAddress, pairAbi, provider);
-    pairContract.on('Swap', handleSwapEvent);
+    pairContract.on('Swap', (userID, amount0In, amount1In, amount0Out, amount1Out, to, event) => 
+      handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1Out, to, event)
+    );
   });
 }
+
 
 module.exports = {
   start

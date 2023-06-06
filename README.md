@@ -9,11 +9,30 @@ Packer build ami.prk.hcl
 
 - create table
 ```
-aws dynamodb create-table \
+<!-- aws dynamodb create-table \
     --table-name test-events \
     --attribute-definitions AttributeName=UserID,AttributeType=S AttributeName=TransactionHash,AttributeType=S \
     --key-schema AttributeName=UserID,KeyType=HASH AttributeName=TransactionHash,KeyType=RANGE \
-    --billing-mode PAY_PER_REQUEST
+    --billing-mode PAY_PER_REQUEST -->
+aws dynamodb create-table \
+    --table-name ADP1 \
+    --attribute-definitions \
+        AttributeName=UserID,AttributeType=S \
+        AttributeName=Timestamp,AttributeType=N \
+        AttributeName=EventType,AttributeType=S \
+    --key-schema \
+        AttributeName=UserID,KeyType=HASH \
+        AttributeName=Timestamp,KeyType=RANGE \
+    --provisioned-throughput \
+        ReadCapacityUnits=5,WriteCapacityUnits=5 \
+    --region us-east-1
+
+aws dynamodb update-table \
+    --table-name ADP1 \
+    --attribute-definitions AttributeName=EventType,AttributeType=S AttributeName=Timestamp,AttributeType=N \
+    --global-secondary-index-updates \
+    "[{\"Create\":{\"IndexName\": \"EventTypeIndex\",\"KeySchema\":[{\"AttributeName\":\"EventType\",\"KeyType\":\"HASH\"},{\"AttributeName\":\"Timestamp\",\"KeyType\":\"RANGE\"}],\"ProvisionedThroughput\": {\"ReadCapacityUnits\": 5,\"WriteCapacityUnits\": 5},\"Projection\":{\"ProjectionType\":\"ALL\"}}}]"
+
 ```
 
 - delete table

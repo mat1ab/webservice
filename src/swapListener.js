@@ -1,4 +1,3 @@
-
 const ethers = require('ethers');
 const pairAbi = require("./abis/pair_abi.json");
 const AWS = require('aws-sdk');
@@ -15,9 +14,9 @@ import('chalk').then((module) => {
   chalk = module.default;
 });
 
-async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, eventData, timestamp, pairAddress) {
+async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, eventData, timestamp, pairAddress, amount0In, amount1In, amount0Out, amount1Out, hasSwapped) {
   const params = {
-    TableName: 'test-events', 
+    TableName: 'ADP1', 
     Item: {
       'UserID': userID,
       'TransactionHash': transactionHash,
@@ -26,6 +25,11 @@ async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNum
       'EventData': eventData,
       'Timestamp': timestamp,
       'PairAddress': pairAddress,
+      'Amount0In': amount0In,
+      'Amount1In': amount1In,
+      'Amount0Out': amount0Out,
+      'Amount1Out': amount1Out,
+      'HasSwapped': hasSwapped, 
     }
   };
 
@@ -40,16 +44,35 @@ async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNum
 async function handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1Out, to, event) {
   try {
     counter++;
-    const timestamp = new Date().toISOString();
+    const timestamp = Math.floor(Date.now() / 1000);
+    const hasSwapped = 1;
+    const userID = event.args[event.args.length - 1];
+    const amount0In = event.args[1];
+    const amount1In = event.args[2];
+    const amount0Out = event.args[3];
+    const amount1Out = event.args[4];
     console.log(chalk.green(`Listening no.#${counter} swap event at ${timestamp}:`));
 
     console.log(`Transaction target address: ${to}`);
 
-    if(event.transactionHash){
+    if (event.transactionHash) {
       console.log(`Transaction Hash: ${event.transactionHash}`);
       console.log(`Address: ${event.address}`);
-      const eventData = JSON.stringify(event); 
-      await storeEventToDynamoDB(userID, event.transactionHash, event.event, event.blockNumber, eventData, timestamp, event.address);
+      const eventData = JSON.stringify(event);
+      await storeEventToDynamoDB(
+        userID,
+        event.transactionHash,
+        event.event,
+        event.blockNumber,
+        eventData,
+        timestamp,
+        event.address,
+        amount0In,
+        amount1In,
+        amount0Out,
+        amount1Out,
+        hasSwapped
+      );
     } else {
       console.log(chalk.red(`Pair listener: Transaction Hash not found`));
     }

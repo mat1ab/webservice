@@ -536,7 +536,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: CheckUserSwap
-      Handler: lambda_function.lambda_handler
+      Handler: index.lambda_handler
       Role: !Join
       - ''
       - - 'arn:aws:iam::'
@@ -545,13 +545,14 @@ Resources:
       Code:
         ZipFile: |
           import boto3
-          import jsons
+          import json
 
           def lambda_handler(event, context):
               dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
               table = dynamodb.Table('ADP1')
               
-              userID = event.get('userID', None)
+              queryStringParameters = event.get('queryStringParameters', {})
+              userID = queryStringParameters.get('userID', None)
               
               if not userID:
                   return {
@@ -560,10 +561,8 @@ Resources:
                   }
                   
               try:
-                  response = table.get_item(
-                      Key={
-                          'UserID': userID
-                      }
+                  response = table.query(
+                      KeyConditionExpression=boto3.dynamodb.conditions.Key('UserID').eq(userID)
                   )
               except Exception as e:
                   print(e)
@@ -571,9 +570,11 @@ Resources:
                       'statusCode': 500,
                       'body': json.dumps('Error reading from DynamoDB')
                   }
-                  
-              item = response.get('Item', None)
-              if item and item.get('HasSwapped', 0) == 1:
+              
+              items = response.get('Items', [])
+              swappedItems = [item for item in items if item.get('HasSwapped', 0) == 1]
+              
+              if swappedItems:
                   return {
                       'statusCode': 200,
                       'body': json.dumps({'swap': 1})
@@ -583,6 +584,7 @@ Resources:
                       'statusCode': 200,
                       'body': json.dumps({'swap': 0})
                   }
+
       Runtime: python3.8
       Timeout: 10
 
@@ -607,6 +609,8 @@ Resources:
       ResourceId: !Ref MyResource
       HttpMethod: GET
       AuthorizationType: NONE
+      RequestParameters: 
+        method.request.querystring.userID: true
       Integration:
         Type: AWS
         IntegrationHttpMethod: POST
@@ -617,6 +621,8 @@ Resources:
         IntegrationResponses:
           - StatusCode: 200
         PassthroughBehavior: WHEN_NO_MATCH
+        RequestParameters: 
+          integration.request.querystring.userID: 'method.request.querystring.userID'
       MethodResponses:
         - StatusCode: 200
 
@@ -630,6 +636,15 @@ Resources:
         Fn::Sub: 
           - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiId}/*
           - apiId: !Ref MyApi
+
+  MyDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: MyGetMethod
+    Properties:
+      RestApiId: !Ref MyApi
+      Description: 'Deployment for MyApi'
+      StageName: 'prod'
+
 
 Outputs:
   MyApiUrl:

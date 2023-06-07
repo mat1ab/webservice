@@ -1,12 +1,12 @@
 PROJ_ROOT = process.env.PROJ_ROOT
 const ethers = require('ethers');
-const pairAbi = require(`${PROJ_ROOT}/src/abis/Pair_abi.json`);
+const pairAbi = require(`${PROJ_ROOT}/src/abis/pair_abi.json`);
 const logger = require(`${PROJ_ROOT}/src/config/winston`);
 const AWS = require('aws-sdk');
 AWS.config.update({region: 'us-east-1'});
 
 
-const pairAddresses = require('./assets/Pair_address.json');
+const pairAddresses = require(`${PROJ_ROOT}/src/assets/pair_address.json`);
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 

@@ -4,7 +4,7 @@
   "description": "A simple web service for AtDex application",
   "main": "main.js",
   "scripts": {
-    "start": "node main.js"
+    "start": "PROJ_ROOT=$HOME/webservice node main.js"
   },
   "keywords": [],
   "author": "",

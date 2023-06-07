@@ -1,7 +1,9 @@
 const ethers = require('ethers');
-const pairAbi = require("./abis/Pair_abi.json");
+const pairAbi = require("./src/abis/Pair_abi.json");
+const logger = require('./src/config/winston');
 const AWS = require('aws-sdk');
 AWS.config.update({region: 'us-east-1'});
+
 
 const pairAddresses = require('./assets/Pair_address.json');
 
@@ -35,8 +37,10 @@ async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNum
 
   try {
     await dynamoDB.put(params).promise();
+    logger.info(`Successfully stored event ${eventName} with transaction hash ${transactionHash}`);
     console.log(`Successfully stored event ${eventName} with transaction hash ${transactionHash}`);
   } catch (err) {
+    logger.error(`Error occurred when storing event: ${err}`);
     console.error(chalk.red(`Error occurred when storing event: ${err}`));
   }
 }
@@ -52,8 +56,10 @@ async function handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1
     const amount0Out = event.args[3];
     const amount1Out = event.args[4];
     console.log(chalk.green(`Listening no.#${counter} swap event at ${timestamp}:`));
+    logger.info(`Listening no.#${counter} swap event at ${timestamp}:`);
 
     console.log(`Transaction target address: ${to}`);
+    logger.info(`Transaction target address: ${to}`);
 
     if (event.transactionHash) {
       console.log(`Transaction Hash: ${event.transactionHash}`);
@@ -74,9 +80,11 @@ async function handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1
         hasSwapped
       );
     } else {
+      logger.info(`Pair listener: Transaction Hash not found`);
       console.log(chalk.red(`Pair listener: Transaction Hash not found`));
     }
   } catch (error) {
+    logger.error(`Pair listener: An error occurred while processing the swap event: ${error}`);
     console.error(chalk.red(`Pair listener: An error occurred while processing the swap event: ${error}`));
   }
 }

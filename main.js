@@ -1,7 +1,8 @@
-const logger = require('./src/config/winston')
+PROJ_ROOT=process.env.PROJ_ROOT
+const logger = require(`${PROJ_ROOT}/src/config/winston`);
 const ethers = require('ethers');
-const SwapListener = require('./src/swapListener');
-const AddLiqListener = require('./src/addLiqListener')
+const SwapListener = require(`${PROJ_ROOT}/src/swapListener`);
+const AddLiqListener = require(`${PROJ_ROOT}/src/addLiqListener`);
 
 const providerUrl = 'wss://testnet.era.zksync.dev/ws';
 let provider;

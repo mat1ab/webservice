@@ -1,6 +1,7 @@
+PROJ_ROOT = process.env.PROJ_ROOT
 const ethers = require('ethers');
-const pairAbi = require("./src/abis/Pair_abi.json");
-const logger = require('./src/config/winston');
+const pairAbi = require(`${PROJ_ROOT}/src/abis/Pair_abi.json`);
+const logger = require(`${PROJ_ROOT}/src/config/winston`);
 const AWS = require('aws-sdk');
 AWS.config.update({region: 'us-east-1'});
 

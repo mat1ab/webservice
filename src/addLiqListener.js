@@ -1,11 +1,12 @@
+PROJ_ROOT=process.env.PROJ_ROOT
 const ethers = require('ethers');
 const provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
-const atCorePairAddresses = require('./src/assets/AtCorePair_address.json');
-const pairAbi = require("./src/abis/AtCorePair_abi.json");
+const atCorePairAddresses = require(`${PROJ_ROOT}/src/assets/AtCorePair_address.json`);
+const pairAbi = require(`${PROJ_ROOT}/src/abis/AtCorePair_abi.json`);
 const AWS = require('aws-sdk');
 AWS.config.update({ region: 'us-east-1' });
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
-const logger = require('./src/config/winston');
+const logger = require(`${PROJ_ROOT}/src/config/winston`);
 
 let counter = 0;
 

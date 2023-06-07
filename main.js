@@ -11,7 +11,7 @@ async function keepAlive() {
     logger.info("Keep alive: latest block is " + await provider.getBlockNumber());
     console.log("Keep alive: latest block is ", await provider.getBlockNumber());
   } catch (err) {
-    logger.error("Error occurred in keepAlive: ${err}");
+    logger.error(`Error occurred in keepAlive: ${err}`);
     console.error("Error occurred in keepAlive: ", err);
   } finally {
     setTimeout(keepAlive, 30000);  // 30 seconds

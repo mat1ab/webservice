@@ -538,10 +538,10 @@ Resources:
       FunctionName: CheckUserSwap
       Handler: index.lambda_handler
       Role: !Join
-      - ''
-      - - 'arn:aws:iam::'
-        - !Ref 'AWS::AccountId'
-        - ':role/m_lambda'
+        - ''
+        - - 'arn:aws:iam::'
+          - !Ref 'AWS::AccountId'
+          - ':role/m_lambda'
       Code:
         ZipFile: |
           import boto3
@@ -551,8 +551,7 @@ Resources:
               dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
               table = dynamodb.Table('ADP1')
               
-              queryStringParameters = event.get('queryStringParameters', {})
-              userID = queryStringParameters.get('userID', None)
+              userID = event.get('userID', None)
               
               if not userID:
                   return {
@@ -588,6 +587,65 @@ Resources:
       Runtime: python3.8
       Timeout: 10
 
+  MyPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref MyApi
+      ResourceId: !Ref MyResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: 
+          Fn::Sub: 
+            - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+            - lambdaArn: !GetAtt MyLambdaFunction.Arn
+        IntegrationResponses:
+          - StatusCode: '200'
+            ResponseTemplates:
+              application/json: ""
+        PassthroughBehavior: WHEN_NO_MATCH
+      MethodResponses:
+        - StatusCode: '200'
+          ResponseModels:
+            application/json: !Ref MyResponseModel
+
+  MyResponseModel:
+    Type: AWS::ApiGateway::Model
+    Properties:
+      RestApiId: !Ref MyApi
+      ContentType: application/json
+      Schema: |
+        {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "type": "object",
+          "properties": {
+            "statusCode": {
+              "type": "integer"
+            },
+            "body": {
+              "type": "string"
+            }
+          },
+          "required": ["statusCode", "body"]
+        }
+    Type: AWS::ApiGateway::Model
+    Properties:
+      RestApiId: !Ref MyApi
+      ContentType: application/json
+      Schema: |
+        {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "type": "object",
+          "properties": {
+            "swap": {
+              "type": "integer"
+            }
+          },
+          "required": ["swap"]
+        }
+
   MyApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -597,34 +655,8 @@ Resources:
     Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref MyApi
-      ParentId: !GetAtt 
-        - MyApi
-        - RootResourceId
+      ParentId: !GetAtt MyApi.RootResourceId
       PathPart: myresource
-
-  MyGetMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref MyApi
-      ResourceId: !Ref MyResource
-      HttpMethod: GET
-      AuthorizationType: NONE
-      RequestParameters: 
-        method.request.querystring.userID: true
-      Integration:
-        Type: AWS
-        IntegrationHttpMethod: POST
-        Uri: 
-          Fn::Sub: 
-            - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
-            - lambdaArn: !GetAtt MyLambdaFunction.Arn
-        IntegrationResponses:
-          - StatusCode: 200
-        PassthroughBehavior: WHEN_NO_MATCH
-        RequestParameters: 
-          integration.request.querystring.userID: 'method.request.querystring.userID'
-      MethodResponses:
-        - StatusCode: 200
 
   MyLambdaPermission:
     Type: AWS::Lambda::Permission
@@ -632,19 +664,15 @@ Resources:
       FunctionName: !Ref MyLambdaFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: 
-        Fn::Sub: 
-          - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiId}/*
-          - apiId: !Ref MyApi
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MyApi}/*
 
   MyDeployment:
     Type: AWS::ApiGateway::Deployment
-    DependsOn: MyGetMethod
+    DependsOn: MyPostMethod
     Properties:
       RestApiId: !Ref MyApi
       Description: 'Deployment for MyApi'
       StageName: 'prod'
-
 
 Outputs:
   MyApiUrl:
@@ -743,3 +771,12 @@ Outputs:
     Value: !Ref EBSKey
 
 
+# TODO:
+
+# CORS (Cross-Origin Resource Sharing): CORS is a web standard for controlling which websites can access your API. You can configure your API Gateway to accept requests only from your frontend website.
+
+# Use HTTPS: Make sure all communication between your frontend and backend is encrypted. This helps to prevent data leaks during transmission.
+
+# Authentication and Authorization: Only authenticated users should be able to access your API. You can use JWTs (JSON Web Tokens) for this. First, your frontend needs to obtain a JWT when a user logs in, and then include this JWT in the header every time it makes a request to the API. On the backend, you need to verify this JWT to confirm that the request comes from an authenticated user. You can further restrict users to only accessing their own data.
+
+# Rate Limiting and Abuse Prevention: You can set rate limiting rules on API Gateway to prevent users or attackers from sending a large number of requests in a short period of time, which could potentially cause your backend servers to crash.

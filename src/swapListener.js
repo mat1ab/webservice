@@ -1,9 +1,9 @@
 const ethers = require('ethers');
-const pairAbi = require("./abis/pair_abi.json");
+const pairAbi = require("./abis/Pair_abi.json");
 const AWS = require('aws-sdk');
 AWS.config.update({region: 'us-east-1'});
 
-const pairAddresses = require('./assets/pair_address.json');
+const pairAddresses = require('./assets/Pair_address.json');
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 

@@ -1,58 +1,111 @@
 const ethers = require('ethers');
-
 const provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
 const atCorePairAddresses = require('./assets/AtCorePair_address.json');
 const pairAbi = require("./abis/AtCorePair_abi.json");
+const AWS = require('aws-sdk');
+AWS.config.update({ region: 'us-east-1' });
+const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
 let counter = 0;
 
 async function getTransactionDetails(transactionHash) {
   try {
     const transaction = await provider.getTransaction(transactionHash);
-    console.log('Transaction Details:');
-    // console.log(transaction);
     console.log('From:', transaction.from);
+    return transaction.from.toString();
   } catch (error) {
     console.error('Error getting transaction details:', error);
+    return null;
   }
 }
 
-function handleMintEvent(sender, amount0, amount1, event) {
+async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, eventData, timestamp, atCorePairAddress, sender, amount0, amount1, hasMinted, hasBurned) {
+  const params = {
+    TableName: 'ADP1',
+    Item: {
+      'UserID': userID,
+      'TransactionHash': transactionHash,
+      'EventName': eventName,
+      'BlockNumber': blockNumber,
+      'EventData': eventData,
+      'Timestamp': timestamp,
+      'AtCorePairAddress': atCorePairAddress,
+      'Sender': sender,
+      'Amount0': amount0,
+      'Amount1': amount1,
+      'HasMinted': hasMinted,
+      'HasBurned': hasBurned,
+    }
+  };
+
+  try {
+    await dynamoDB.put(params).promise();
+    console.log(`Successfully stored event ${eventName} with transaction hash ${transactionHash}`);
+  } catch (err) {
+    console.error(`Error occurred when storing event: ${err}`);
+  }
+}
+
+async function handleMintEvent(sender, amount0, amount1, event) {
   counter++;
-  const timestamp = new Date().toISOString();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const hasMinted = 1;
+  const transactionHash = event.transactionHash;
+  const userID = await getTransactionDetails(transactionHash);
   console.log(`Listening no.#${counter} Mint event at ${timestamp}:`);
   console.log(`Sender: ${sender}`);
   console.log(`Amount0: ${amount0.toString()}`);
   console.log(`Amount1: ${amount1.toString()}`);
-  
-  // Get and log the transaction details
-  const transactionHash = event.transactionHash;
-  console.log(`Transaction Hash: ${transactionHash}`);
-  getTransactionDetails(transactionHash);
 
-  // Log the entire event object
+  // Store the event data to DynamoDB
+  await storeEventToDynamoDB(
+    userID,
+    transactionHash,
+    'Mint',
+    event.blockNumber,
+    JSON.stringify(event),
+    timestamp,
+    event.address,
+    sender,
+    amount0,
+    amount1,
+    hasMinted,
+  );
+
   console.log(`Event object: ${JSON.stringify(event, null, 2)}`);
 }
 
-function handleBurnEvent(sender, amount0, amount1, to, event) {
+async function handleBurnEvent(sender, amount0, amount1, to, event) {
   counter++;
-  const timestamp = new Date().toISOString();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const transactionHash = event.transactionHash;
+  const userID = await getTransactionDetails(transactionHash);
+  const hasBurned = 1;
   console.log(`Listening no.#${counter} Burn event at ${timestamp}:`);
   console.log(`Sender: ${sender}`);
   console.log(`Amount0: ${amount0.toString()}`);
   console.log(`Amount1: ${amount1.toString()}`);
   console.log(`To: ${to}`);
-  
-  // Get and log the transaction details
-  const transactionHash = event.transactionHash;
-  console.log(`Transaction Hash: ${transactionHash}`);
-  getTransactionDetails(transactionHash);
 
-  // Log the entire event object
+  // Store the event data to DynamoDB
+  await storeEventToDynamoDB(
+    userID,
+    transactionHash,
+    'Burn',
+    event.blockNumber,
+    JSON.stringify(event),
+    timestamp,
+    event.address,
+    sender,
+    amount0,
+    amount1,
+    hasBurned
+  );
+
   console.log(`Event object: ${JSON.stringify(event, null, 2)}`);
 }
 
-function start() {
+function start(provider) {
   atCorePairAddresses.forEach(atCorePairAddress => {
     console.log('Starting to listen for Mint and Burn events...');
     const pairContract = new ethers.Contract(atCorePairAddress, pairAbi, provider);
@@ -61,5 +114,6 @@ function start() {
   });
 }
 
-// Start listening to events
-start();
+module.exports = {
+    start
+  };

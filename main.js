@@ -1,6 +1,7 @@
 const logger = require('./src/config/winston')
 const ethers = require('ethers');
 const SwapListener = require('./src/swapListener');
+const AddLiqListener = require('./src/addLiqListener')
 
 const providerUrl = 'wss://testnet.era.zksync.dev/ws';
 let provider;
@@ -27,6 +28,16 @@ async function startSwapListener() {
   }
 }
 
+async function startAddLiqListener() {
+  try {
+    await AddLiqListener.start(provider);
+  } catch (err) {
+    logger.error(`Error occurred in AddLiqListener.start: ${err}`);
+    console.error("Error occurred in AddLiqListener.start:", err);
+    setTimeout(startAddLiqListener, 30000);  // 30 seconds
+  }
+}
+
 function connectToProvider() {
   provider = new ethers.providers.WebSocketProvider(providerUrl);
 
@@ -47,6 +58,7 @@ function connectToProvider() {
   });
 
   startSwapListener();
+  startAddLiqListener();
   keepAlive();
 }
 

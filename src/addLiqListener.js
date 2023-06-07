@@ -1,7 +1,7 @@
 const ethers = require('ethers');
 const provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
-const atCorePairAddresses = require('./assets/AtCorePair_address.json');
-const pairAbi = require("./abis/AtCorePair_abi.json");
+const atCorePairAddresses = require('./src/assets/AtCorePair_address.json');
+const pairAbi = require("./src/abis/AtCorePair_abi.json");
 const AWS = require('aws-sdk');
 AWS.config.update({ region: 'us-east-1' });
 const dynamoDB = new AWS.DynamoDB.DocumentClient();

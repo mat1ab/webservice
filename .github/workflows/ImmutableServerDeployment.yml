@@ -3,7 +3,7 @@ name: Build AMI And Implement Immutable Server
 env:
   ARTIFACT_NAME: webservice
   AWS_REGION: us-east-1
-  LaunchTemplateName: webapp_launch_template
+  LaunchTemplateName: myVpc-asgLaunchTemplate
 
 on:
   push:

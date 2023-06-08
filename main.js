@@ -3,6 +3,7 @@ const logger = require(`${PROJ_ROOT}/src/config/winston`);
 const ethers = require('ethers');
 const SwapListener = require(`${PROJ_ROOT}/src/swapListener`);
 const AddLiqListener = require(`${PROJ_ROOT}/src/addLiqListener`);
+const PairCreatedListener = require(`${PROJ_ROOT}/src/pairCreatedListener`)
 
 const providerUrl = 'wss://testnet.era.zksync.dev/ws';
 let provider;
@@ -15,7 +16,7 @@ async function keepAlive() {
     logger.error(`Error occurred in keepAlive: ${err}`);
     console.error("Error occurred in keepAlive: ", err);
   } finally {
-    setTimeout(keepAlive, 30000);  // 30 seconds
+    setTimeout(keepAlive, 60000);  // 60 seconds
   }
 }
 
@@ -39,6 +40,15 @@ async function startAddLiqListener() {
   }
 }
 
+async function startPairCreatedListener() {
+  try {
+    await PairCreatedListener.start(provider);
+  } catch (err) {
+    logger.error(`Error occurred in AddLiqListener.start: ${err}`);
+    console.error("Error occurred in AddLiqListener.start:", err);
+    setTimeout(startAddLiqListener, 30000);  // 30 seconds
+  }
+}
 function connectToProvider() {
   provider = new ethers.providers.WebSocketProvider(providerUrl);
 
@@ -60,6 +70,7 @@ function connectToProvider() {
 
   startSwapListener();
   startAddLiqListener();
+  startPairCreatedListener();
   keepAlive();
 }
 

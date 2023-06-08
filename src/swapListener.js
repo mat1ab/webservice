@@ -5,7 +5,7 @@ const logger = require(`${PROJ_ROOT}/src/config/winston`);
 const AWS = require('aws-sdk');
 AWS.config.update({region: 'us-east-1'});
 
-const pairAddresses = require(`${PROJ_ROOT}/src/assets/pair_address.json`);
+// const pairAddresses = require(`${PROJ_ROOT}/src/assets/pair_address.json`);
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
@@ -15,6 +15,21 @@ let chalk;
 import('chalk').then((module) => {
   chalk = module.default;
 });
+
+async function getPairAddressesFromDB() {
+  const params = {
+    TableName: 'TokenPairs', // Specify the name of your database table
+    ProjectionExpression: "pairAddress", // Specify that you only want the 'pairAddress' field
+  };
+
+  try {
+    const result = await dynamoDB.scan(params).promise();
+    return result.Items.map(item => item.pairAddress);
+  } catch (error) {
+    console.error("Error fetching pair addresses from database:", error);
+    return []; 
+  }
+}
 
 async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, eventData, timestamp, pairAddress) {
   const params = {
@@ -74,7 +89,8 @@ async function handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1
   }
 }
 
-function start(provider) {
+async function start(provider) {
+  const pairAddresses = await getPairAddressesFromDB();
   pairAddresses.forEach(pairAddress => {
     const pairContract = new ethers.Contract(pairAddress, pairAbi, provider);
     pairContract.on('Swap', handleSwapEvent);

@@ -626,7 +626,7 @@ Resources:
       AuthorizationType: NONE
       Integration:
         Type: AWS
-        IntegrationHttpMethod: GET
+        IntegrationHttpMethod: POST
         Uri: 
           Fn::Sub: 
             - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
@@ -719,7 +719,7 @@ Resources:
     Properties:
       RestApiId: !Ref MyApi
       ParentId: !GetAtt MyApi.RootResourceId
-      PathPart: pair
+      PathPart: GetTokenPairs
 
   MyLambdaPermission:
     Type: AWS::Lambda::Permission
@@ -728,14 +728,24 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MyApi}/*
+  
+  MyLambdaPermission2:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref MyLambdaFunction2
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MyApi}/*
 
   MyDeployment:
     Type: AWS::ApiGateway::Deployment
-    DependsOn: MyPostMethod
+    DependsOn: [MyPostMethod, MyGetMethod]
     Properties:
       RestApiId: !Ref MyApi
       Description: 'Deployment for MyApi'
       StageName: 'prod'
+
+  
 
 Outputs:
   MyApiUrl:

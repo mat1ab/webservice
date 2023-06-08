@@ -1,8 +1,8 @@
 PROJ_ROOT=process.env.PROJ_ROOT
 const ethers = require('ethers');
 const provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
-const atCorePairAddresses = require(`${PROJ_ROOT}/src/assets/pair_address.json`);
-const pairAbi = require(`${PROJ_ROOT}/src/abis/at_core_pair_abi.json`);
+const PairAddresses = require(`${PROJ_ROOT}/src/assets/pair_address.json`);
+const pairAbi = require(`${PROJ_ROOT}/src/abis/pair_abi.json`);
 const AWS = require('aws-sdk');
 AWS.config.update({ region: 'us-east-1' });
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
@@ -17,7 +17,7 @@ async function getTransactionDetails(transactionHash) {
     console.log('From:', transaction.from);
     return transaction.from.toString();
   } catch (error) {
-    logger.error(`Error getting transaction details:${err}`);
+    logger.error(`Error getting transaction details:${error}`);
     console.error('Error getting transaction details:', error);
     return null;
   }
@@ -92,7 +92,7 @@ async function handleBurnEvent(sender, amount0, amount1, to, event) {
 }
 
 function start(provider) {
-  atCorePairAddresses.forEach(atCorePairAddress => {
+  PairAddresses.forEach(atCorePairAddress => {
     logger.info('Starting to listen for Mint and Burn events...');
     console.log('Starting to listen for Mint and Burn events...');
     const pairContract = new ethers.Contract(atCorePairAddress, pairAbi, provider);

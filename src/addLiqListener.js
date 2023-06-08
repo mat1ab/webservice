@@ -1,7 +1,7 @@
 PROJ_ROOT=process.env.PROJ_ROOT
 const ethers = require('ethers');
 const provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
-const atCorePairAddresses = require(`${PROJ_ROOT}/src/assets/at_core_pair_address.json`);
+const atCorePairAddresses = require(`${PROJ_ROOT}/src/assets/pair_address.json`);
 const pairAbi = require(`${PROJ_ROOT}/src/abis/at_core_pair_abi.json`);
 const AWS = require('aws-sdk');
 AWS.config.update({ region: 'us-east-1' });
@@ -47,10 +47,9 @@ async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNum
   }
 }
 
-async function handleMintEvent(event) {
+async function handleMintEvent(sender, amount0, amount1, event) {
   counter++;
   const timestamp = Math.floor(Date.now() / 1000);
-//   const hasMinted = 1;
   const transactionHash = event.transactionHash;
   const userID = await getTransactionDetails(transactionHash);
   logger.info(`Listening no.#${counter} Mint event at ${timestamp}:`);
@@ -70,14 +69,13 @@ async function handleMintEvent(event) {
   console.log(`Event object: ${JSON.stringify(event, null, 2)}`);
 }
 
-async function handleBurnEvent(event) {
+async function handleBurnEvent(sender, amount0, amount1, to, event) {
   counter++;
   const timestamp = Math.floor(Date.now() / 1000);
   const transactionHash = event.transactionHash;
   const userID = await getTransactionDetails(transactionHash);
   logger.info(`Listening no.#${counter} Burn event at ${timestamp}:`);
   console.log(`Listening no.#${counter} Burn event at ${timestamp}:`);
-
 
   // Store the event data to DynamoDB
   await storeEventToDynamoDB(
@@ -104,5 +102,5 @@ function start(provider) {
 }
 
 module.exports = {
-    start
-  };
+  start
+};

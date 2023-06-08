@@ -587,11 +587,74 @@ Resources:
       Runtime: python3.8
       Timeout: 10
 
-  MyPostMethod:
+  MyLambdaFunction2:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: GetTokenPairs
+      Handler: index.lambda_handler
+      Role: !Join
+        - ''
+        - - 'arn:aws:iam::'
+          - !Ref 'AWS::AccountId'
+          - ':role/m_lambda'
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+
+          def lambda_handler(event, context):
+              dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+              table = dynamodb.Table('TokenPairs')
+              
+              response = table.scan()
+              items = response['Items']
+              
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps(items)
+              }
+      
+      Runtime: python3.8
+      Timeout: 10
+
+  MyGetMethod:
     Type: AWS::ApiGateway::Method
     Properties:
       RestApiId: !Ref MyApi
       ResourceId: !Ref MyResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: GET
+        Uri: 
+          Fn::Sub: 
+            - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+            - lambdaArn: !GetAtt MyLambdaFunction2.Arn
+        IntegrationResponses:
+          - StatusCode: '200'
+            ResponseTemplates:
+              application/json: ""
+        PassthroughBehavior: WHEN_NO_MATCH
+      MethodResponses:
+        - StatusCode: '200'
+          ResponseModels:
+            application/json: !Ref MyResponseModel
+
+
+  MyPostResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref MyApi
+      ParentId: !GetAtt MyApi.RootResourceId
+      PathPart: v1
+
+
+  MyPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref MyApi
+      ResourceId: !Ref MyPostResource
       HttpMethod: POST
       AuthorizationType: NONE
       Integration:
@@ -656,7 +719,7 @@ Resources:
     Properties:
       RestApiId: !Ref MyApi
       ParentId: !GetAtt MyApi.RootResourceId
-      PathPart: myresource
+      PathPart: pair
 
   MyLambdaPermission:
     Type: AWS::Lambda::Permission

@@ -1,11 +1,15 @@
-PROJ_ROOT = process.env.PROJ_ROOT
 const ethers = require('ethers');
-const pairAbi = require(`${PROJ_ROOT}/src/abis/pair_abi.json`);
-const logger = require(`${PROJ_ROOT}/src/config/winston`);
 const AWS = require('aws-sdk');
-AWS.config.update({region: 'us-east-1'});
 
-// const pairAddresses = require(`${PROJ_ROOT}/src/assets/pair_address.json`);
+const PROJ_ROOT = process.env.PROJ_ROOT;
+
+const pairAbi = require(`${PROJ_ROOT}/src/abis/pair_abi.json`);
+const logger = require(`${PROJ_ROOT}/src/winston`);
+const config = require(`${PROJ_ROOT}/src/config/config.json`); 
+
+AWS.config.update({
+  region: config.awsRegion,
+});
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
@@ -16,20 +20,22 @@ import('chalk').then((module) => {
   chalk = module.default;
 });
 
-async function getPairAddressesFromDB() {
+async function loadPairAddressesFromDB() {
   const params = {
-    TableName: 'TokenPairs', // Specify the name of your database table
-    ProjectionExpression: "pairAddress", // Specify that you only want the 'pairAddress' field
+      TableName: 'TokenPairs',
+      ProjectionExpression: "pairAddress",
   };
 
   try {
-    const result = await dynamoDB.scan(params).promise();
-    return result.Items.map(item => item.pairAddress);
+      const result = await dynamoDB.scan(params).promise();
+      console.log('1111111',result);
+      return result.Items.map(item => item.pairAddress);
   } catch (error) {
-    console.error("Error fetching pair addresses from database:", error);
-    return []; 
+      console.error("Error fetching pair addresses from database:", error);
+      return [];
   }
 }
+
 
 async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, eventData, timestamp, pairAddress) {
   const params = {
@@ -90,13 +96,25 @@ async function handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1
 }
 
 async function start(provider) {
-  const pairAddresses = await getPairAddressesFromDB();
-  pairAddresses.forEach(pairAddress => {
-    const pairContract = new ethers.Contract(pairAddress, pairAbi, provider);
-    pairContract.on('Swap', handleSwapEvent);
-  });
+  const listenForSwapEvents = async () => {
+    const pairAddresses = await loadPairAddressesFromDB();
+    pairAddresses.forEach(pairAddress => {
+      const pairContract = new ethers.Contract(pairAddress, pairAbi, provider);
+      pairContract.on('Swap', handleSwapEvent);
+    });
+  };
+
+
+  await listenForSwapEvents();
+
+  setInterval(async () => {
+    await listenForSwapEvents();
+  }, 30000);
 }
 
 module.exports = {
   start
 };
+
+
+

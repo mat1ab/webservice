@@ -1,14 +1,35 @@
-PROJ_ROOT=process.env.PROJ_ROOT
 const ethers = require('ethers');
-const provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
-const PairAddresses = require(`${PROJ_ROOT}/src/assets/pair_address.json`);
-const pairAbi = require(`${PROJ_ROOT}/src/abis/pair_abi.json`);
 const AWS = require('aws-sdk');
-AWS.config.update({ region: 'us-east-1' });
+
+PROJ_ROOT=process.env.PROJ_ROOT;
+const provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
+
+const pairAbi = require(`${PROJ_ROOT}/src/abis/pair_abi.json`);
+const config = require(`${PROJ_ROOT}/src/config/config.json`); 
+const logger = require(`${PROJ_ROOT}/src/winston`);
+
+AWS.config.update({
+  region: config.awsRegion,
+});
+
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
-const logger = require(`${PROJ_ROOT}/src/config/winston`);
 
 let counter = 0;
+
+async function loadPairAddressesFromDB() {
+  const params = {
+      TableName: 'TokenPairs',
+      ProjectionExpression: "pairAddress",
+  };
+
+  try {
+      const result = await dynamoDB.scan(params).promise();
+      return result.Items.map(item => item.pairAddress);
+  } catch (error) {
+      console.error("Error fetching pair addresses from database:", error);
+      return [];
+  }
+}
 
 async function getTransactionDetails(transactionHash) {
   try {
@@ -23,7 +44,7 @@ async function getTransactionDetails(transactionHash) {
   }
 }
 
-async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, eventData, timestamp, atCorePairAddress) {
+async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, eventData, timestamp, pairAddress) {
   const params = {
     TableName: 'ADP1',
     Item: {
@@ -33,7 +54,7 @@ async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNum
       'BlockNumber': blockNumber,
       'EventData': eventData,
       'Timestamp': timestamp,
-      'PairAddress': atCorePairAddress
+      'PairAddress': pairAddress
     }
   };
 
@@ -55,7 +76,7 @@ async function handleMintEvent(sender, amount0, amount1, event) {
   logger.info(`Listening no.#${counter} Mint event at ${timestamp}:`);
   console.log(`Listening no.#${counter} Mint event at ${timestamp}:`);
 
-  // Store the event data to DynamoDB
+
   await storeEventToDynamoDB(
     userID,
     transactionHash,
@@ -77,7 +98,6 @@ async function handleBurnEvent(sender, amount0, amount1, to, event) {
   logger.info(`Listening no.#${counter} Burn event at ${timestamp}:`);
   console.log(`Listening no.#${counter} Burn event at ${timestamp}:`);
 
-  // Store the event data to DynamoDB
   await storeEventToDynamoDB(
     userID,
     transactionHash,
@@ -91,16 +111,24 @@ async function handleBurnEvent(sender, amount0, amount1, to, event) {
   console.log(`Event object: ${JSON.stringify(event, null, 2)}`);
 }
 
-function start(provider) {
-  PairAddresses.forEach(atCorePairAddress => {
-    logger.info('Starting to listen for Mint and Burn events...');
-    console.log('Starting to listen for Mint and Burn events...');
-    const pairContract = new ethers.Contract(atCorePairAddress, pairAbi, provider);
-    pairContract.on('Mint', handleMintEvent);
-    pairContract.on('Burn', handleBurnEvent);
-  });
+async function start(provider) {
+  const listenForMintBurnEvents = async () => {
+    const pairAddresses = await loadPairAddressesFromDB();
+    pairAddresses.forEach(pairAddress => {
+      const pairContract = new ethers.Contract(pairAddress, pairAbi, provider);
+      pairContract.on('Mint', handleMintEvent);
+      pairContract.on('Burn', handleBurnEvent);
+    });
+  };
+
+  await listenForMintBurnEvents();
+
+  setInterval(async () => {
+    await listenForMintBurnEvents();
+  }, 30000);
 }
 
 module.exports = {
   start
 };
+

@@ -1,12 +1,14 @@
 PROJ_ROOT=process.env.PROJ_ROOT
-const logger = require(`${PROJ_ROOT}/src/config/winston`);
+const logger = require(`${PROJ_ROOT}/src/winston`);
 const ethers = require('ethers');
 const SwapListener = require(`${PROJ_ROOT}/src/swapListener`);
 const AddLiqListener = require(`${PROJ_ROOT}/src/addLiqListener`);
 const PairCreatedListener = require(`${PROJ_ROOT}/src/pairCreatedListener`)
+const tokenPairsScript = require(`${PROJ_ROOT}/src/utils/tokenPairsScript.js`);
 
 const providerUrl = 'wss://testnet.era.zksync.dev/ws';
 let provider;
+
 
 async function keepAlive() {
   try {
@@ -49,6 +51,8 @@ async function startPairCreatedListener() {
     setTimeout(startAddLiqListener, 30000);  // 30 seconds
   }
 }
+
+
 function connectToProvider() {
   provider = new ethers.providers.WebSocketProvider(providerUrl);
 
@@ -68,9 +72,16 @@ function connectToProvider() {
     setTimeout(connectToProvider, 30000);
   });
 
+  setInterval(() => {
+    tokenPairsScript.runTokenPairsScript()
+        .catch(error => {
+            console.error('Error running token pairs script:', error);
+        });
+  }, 60 * 60 * 1000); // 60 minutes
+
+  startPairCreatedListener();
   startSwapListener();
   startAddLiqListener();
-  startPairCreatedListener();
   keepAlive();
 }
 

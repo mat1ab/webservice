@@ -102,6 +102,12 @@ Parameters:
     Description: ADP season 1
     Type: String
     Default: "ADP1"
+
+  DynamoDBTableTwo:
+    Description: Token pairs list
+    Type: String
+    Default: "TokenPairs"
+
   
 Resources:
   ## Create the VPC
@@ -447,6 +453,25 @@ Resources:
         Projection:
           ProjectionType: ALL
 
+  TokenPairsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    Properties:
+      TableName: !Ref DynamoDBTableTwo
+      AttributeDefinitions:
+        - AttributeName: token0
+          AttributeType: S
+        - AttributeName: token1
+          AttributeType: S
+      KeySchema:
+        - AttributeName: token0
+          KeyType: HASH
+        - AttributeName: token1
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+
+
+    
   
   EBSKey:
     Type: AWS::KMS::Key

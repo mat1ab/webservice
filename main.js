@@ -77,7 +77,7 @@ function connectToProvider() {
         .catch(error => {
             console.error('Error running token pairs script:', error);
         });
-  }, 60 * 1000); // 60 minutes
+  }, 60 * 60 * 1000); // 60 minutes
 
   startPairCreatedListener();
   startSwapListener();

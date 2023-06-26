@@ -1,4 +1,5 @@
 {
     "factoryAddress": "0xec10d31F75840c768C5b94A9094Fbac21BD985C9",
-    "awsRegion": "us-east-1"
+    "awsRegion": "us-east-1",
+    "esArrTokenAddress":"0xf1b2345afdf3Ac3eF77c303e446d82Ed04bbb253"
 }

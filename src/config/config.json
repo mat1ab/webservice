@@ -1,4 +1,7 @@
 {
-    "factoryAddress": "0xec10d31F75840c768C5b94A9094Fbac21BD985C9",
-    "awsRegion": "us-east-1"
+    "factoryAddress": "0xcb35aCc2E8B52947B641A995b4E66E190A61A60B",
+    "awsRegion": "us-east-1",
+    "esArrTokenAddress":"0xBA6b908fd2dFf34D31445C7bAF9e681B37550558",
+    "arr_eth_nftPool":"0xcAF46b741A636d51C0388a0d709943d41be009E2",
+    "nftPoolFactoryAddress": "0x98b00E112231758D19aC813DbB7312e1fca50E67"
 }

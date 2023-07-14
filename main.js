@@ -5,6 +5,9 @@ const SwapListener = require(`${PROJ_ROOT}/src/swapListener`);
 const AddLiqListener = require(`${PROJ_ROOT}/src/addLiqListener`);
 const PairCreatedListener = require(`${PROJ_ROOT}/src/pairCreatedListener`)
 const tokenPairsScript = require(`${PROJ_ROOT}/src/utils/tokenPairsScript.js`);
+const BasePoolListener = require(`${PROJ_ROOT}/src/basePoolListener.js`)
+const BasePoolFactoryListener = require(`${PROJ_ROOT}/src/basePoolFactoryListener.js`)
+
 
 const providerUrl = 'wss://testnet.era.zksync.dev/ws';
 let provider;
@@ -52,6 +55,27 @@ async function startPairCreatedListener() {
   }
 }
 
+async function startBasePoolListener() {
+  try {
+    await BasePoolListener.start(provider);
+  } catch (err) {
+    logger.error(`Error occurred in BasePoolListener.start: ${err}`);
+    console.error("Error occurred in BasePoolListener.start:", err);
+    setTimeout(startBasePoolListener, 30000);  // 30 seconds
+  }
+}
+
+async function startBasePoolFactoryListener() {
+  try {
+    await BasePoolFactoryListener.start(provider);
+  } catch (err) {
+    logger.error(`Error occurred in BasePoolFactoryListener.start: ${err}`);
+    console.error("Error occurred in BasePoolFactoryListener.start:", err);
+    setTimeout(BasePoolFactoryListener, 30000);  // 30 seconds
+  }
+}
+
+
 
 function connectToProvider() {
   provider = new ethers.providers.WebSocketProvider(providerUrl);
@@ -77,11 +101,13 @@ function connectToProvider() {
         .catch(error => {
             console.error('Error running token pairs script:', error);
         });
-  }, 60 * 60 * 1000); // 60 minutes
+  }, 60  * 1000); // 60 minutes cron
 
   startPairCreatedListener();
   startSwapListener();
   startAddLiqListener();
+  startBasePoolListener();
+  startBasePoolFactoryListener();
   keepAlive();
 }
 

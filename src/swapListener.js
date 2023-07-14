@@ -28,7 +28,6 @@ async function loadPairAddressesFromDB() {
 
   try {
       const result = await dynamoDB.scan(params).promise();
-      console.log('1111111',result);
       return result.Items.map(item => item.pairAddress);
   } catch (error) {
       console.error("Error fetching pair addresses from database:", error);

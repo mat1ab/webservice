@@ -61,10 +61,10 @@ async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNum
   try {
     await dynamoDB.put(params).promise();
     logger.info(`Successfully stored event ${eventName} with transaction hash ${transactionHash}`);
-    console.log(`Successfully stored event ${eventName} with transaction hash ${transactionHash}`);
+    
   } catch (err) {
     logger.error(`Error occurred when storing event: ${err}`);
-    console.error(`Error occurred when storing event: ${err}`);
+    
   }
 }
 
@@ -74,7 +74,6 @@ async function handleMintEvent(sender, amount0, amount1, event) {
   const transactionHash = event.transactionHash;
   const userID = await getTransactionDetails(transactionHash);
   logger.info(`Listening no.#${counter} Mint event at ${timestamp}:`);
-  console.log(`Listening no.#${counter} Mint event at ${timestamp}:`);
 
 
   await storeEventToDynamoDB(
@@ -87,7 +86,6 @@ async function handleMintEvent(sender, amount0, amount1, event) {
     event.address
   );
   logger.info(`Event object: ${JSON.stringify(event, null, 2)}`);
-  console.log(`Event object: ${JSON.stringify(event, null, 2)}`);
 }
 
 async function handleBurnEvent(sender, amount0, amount1, to, event) {
@@ -96,7 +94,6 @@ async function handleBurnEvent(sender, amount0, amount1, to, event) {
   const transactionHash = event.transactionHash;
   const userID = await getTransactionDetails(transactionHash);
   logger.info(`Listening no.#${counter} Burn event at ${timestamp}:`);
-  console.log(`Listening no.#${counter} Burn event at ${timestamp}:`);
 
   await storeEventToDynamoDB(
     userID,
@@ -108,7 +105,6 @@ async function handleBurnEvent(sender, amount0, amount1, to, event) {
     event.address
   );
   logger.info(`Event object: ${JSON.stringify(event, null, 2)}`);
-  console.log(`Event object: ${JSON.stringify(event, null, 2)}`);
 }
 
 async function start(provider) {

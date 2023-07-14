@@ -12,11 +12,17 @@ AWS.config.update({
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
-async function handlePairCreatedEvent(token0, token1, pairAddress) {
+async function handlePairCreatedEvent(token0, token1, pairAddress, event, provider) {
     console.log('PairCreated event detected:');
     console.log(`- token0: ${token0}`);
     console.log(`- token1: ${token1}`);
     console.log(`- pairAddress: ${pairAddress}`);
+    console.log(`Event object: ${ethers.utils.formatEther(event)}`);
+
+    const balance = await provider.getBalance(pairAddress);
+
+
+    console.log(`Balance of pairAddress: ${ethers.utils.formatEther(balance)}`); // Balance in Ether
 
     const params = {
         TableName: 'TokenPairs',
@@ -33,11 +39,15 @@ async function handlePairCreatedEvent(token0, token1, pairAddress) {
     } catch (err) {
         console.error("Unable to add item. Error JSON:", JSON.stringify(err, null, 2));
     }
+   
 }
 
 async function start(provider) {
     let factory = new ethers.Contract(factoryAddress, factoryAbi, provider);
-    factory.on("PairCreated", handlePairCreatedEvent);
+    factory.on("PairCreated", async (token0, token1, pairAddress, event) => {
+        await handlePairCreatedEvent(token0, token1, pairAddress, event, provider);
+    });
+    
 }
 
 module.exports = {

@@ -101,7 +101,7 @@ function connectToProvider() {
         .catch(error => {
             console.error('Error running token pairs script:', error);
         });
-  }, 60 * 60 * 1000); // 60 minutes cron
+  }, 60  * 30 * 1000); // 30 minutes cron
 
   startPairCreatedListener();
   startSwapListener();

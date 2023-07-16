@@ -1,0 +1,12 @@
+
+ [
+    {
+        "contractAddress": "0xcAF46b741A636d51C0388a0d709943d41be009E2",
+        "lpTokenAddress": "0x310E860Aaf83f341C97CF25Dc7B7904c9D67Ccdc"
+    },
+    {
+        "contractAddress": "0x6F1934D4A844f7DC7239Bd7d853e5501DdBc4Ac6",
+        "lpTokenAddress": "0xbaFCdD749C9105e268151D80331B1aC55613BFb3"
+    }
+   
+ ]

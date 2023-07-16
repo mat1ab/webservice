@@ -470,8 +470,40 @@ Resources:
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
 
+ 
+  SpNftTransferEventsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: spNftTransferEvents
+      AttributeDefinitions:
+        - AttributeName: lpTokenAddress
+          AttributeType: S
+        - AttributeName: tokenId
+          AttributeType: N
+        - AttributeName: userAddress
+          AttributeType: S
+      KeySchema:
+        - AttributeName: lpTokenAddress
+          KeyType: HASH
+        - AttributeName: tokenId
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      GlobalSecondaryIndexes:
+        - IndexName: UserIndex
+          KeySchema:
+            - AttributeName: userAddress
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
 
-    
+
+
+
   
   EBSKey:
     Type: AWS::KMS::Key
@@ -764,11 +796,89 @@ Resources:
 
   MyDeployment:
     Type: AWS::ApiGateway::Deployment
-    DependsOn: [MyPostMethod, MyGetMethod]
+    DependsOn: [MyPostMethod, MyGetMethod, MyGetMethod1]
     Properties:
       RestApiId: !Ref MyApi
       Description: 'Deployment for MyApi'
       StageName: 'prod'
+
+  GetTokenIdsByAddressLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: GetTokenIdsByAddress
+      Handler: index.lambda_handler
+       Role: !Join
+        - ''
+        - - 'arn:aws:iam::'
+          - !Ref 'AWS::AccountId'
+          - ':role/m_lambda'
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+
+          def lambda_handler(event, context):
+              dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+              table = dynamodb.Table('spNftTransferEvents')
+              
+              userAddress = event.get('userAddress', None)
+              lpTokenAddress = event.get('lpTokenAddress', None)
+              
+              if not userAddress or not lpTokenAddress:
+                  return {
+                      'statusCode': 400,
+                      'body': json.dumps('Missing userAddress or lpTokenAddress')
+                  }
+                  
+              try:
+                  response = table.query(
+                      IndexName='UserIndex',
+                      KeyConditionExpression=boto3.dynamodb.conditions.Key('userAddress').eq(userAddress)
+                          & boto3.dynamodb.conditions.Key('lpTokenAddress').eq(lpTokenAddress)
+                  )
+              except Exception as e:
+                  print(e)
+                  return {
+                      'statusCode': 500,
+                      'body': json.dumps('Error reading from DynamoDB')
+                  }
+              
+              items = response.get('Items', [])
+              tokenIds = [item.get('tokenId', 0) for item in items]
+              
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps({'tokenIds': tokenIds})
+              }
+
+      Runtime: python3.8
+      Timeout: 10
+
+  MyGetMethod1:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref MyApi
+      ResourceId: !Ref MyResource2
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetTokenIdsByAddressLambda.Arn}/invocations
+        PassthroughBehavior: WHEN_NO_MATCH
+      MethodResponses:
+        - StatusCode: '200'
+          ResponseModels:
+            application/json: !Ref MyResponseModel
+
+  MyResource2:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref MyApi
+      ParentId: !GetAtt MyApi.RootResourceId
+      PathPart: get-token-ids
+
+  
 
   
 

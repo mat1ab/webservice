@@ -859,7 +859,7 @@ Resources:
               if not userAddress or not lpTokenAddress:
                   return {
                       'statusCode': 400,
-                      'body': json.dumps('Missing userAddress or lpTokenAddress')
+                      'body': 'Missing userAddress or lpTokenAddress'
                   }
                   
               try:
@@ -876,16 +876,15 @@ Resources:
                   print(e)
                   return {
                       'statusCode': 500,
-                      'body': json.dumps('Error reading from DynamoDB')
+                      'body': 'Error reading from DynamoDB'
                   }
               
               items = response.get('Items', [])
               tokenIds = [int(item.get('tokenId', 0)) for item in items]
-
               
               return {
                   'statusCode': 200,
-                  'body': json.dumps({'tokenIds': tokenIds})
+                  'body': {'tokenIds': tokenIds}
               }
 
 

@@ -674,6 +674,66 @@ Resources:
       Runtime: python3.8
       Timeout: 10
 
+  MyLambdaFunction3:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: GetTokenIdsByAddress
+      Handler: index.lambda_handler
+      Role: !Join
+        - ''
+        - - 'arn:aws:iam::'
+          - !Ref 'AWS::AccountId'
+          - ':role/m_lambda'
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+
+          def lambda_handler(event, context):
+              dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+              table = dynamodb.Table('spNftTransferEvents')
+              
+              queryStringParameters = event.get('queryStringParameters', {})
+              userAddress = queryStringParameters.get('userAddress', None)
+              lpTokenAddress = queryStringParameters.get('lpTokenAddress', None)
+              
+              if not userAddress or not lpTokenAddress:
+                  return {
+                      'statusCode': 400,
+                      'body': 'Missing userAddress or lpTokenAddress'
+                  }
+                  
+              try:
+                  response = table.query(
+                      IndexName='UserLpIndex',
+                      KeyConditionExpression='userAddress = :userAddressValue AND lpTokenAddress = :lpTokenAddressValue',
+                      ExpressionAttributeValues={
+                          ':userAddressValue': userAddress,
+                          ':lpTokenAddressValue': lpTokenAddress
+                      }
+                  )
+
+              except Exception as e:
+                  print(e)
+                  return {
+                      'statusCode': 500,
+                      'body': 'Error reading from DynamoDB'
+                  }
+              
+              items = response.get('Items', [])
+              tokenIds = [int(item.get('tokenId', 0)) for item in items]
+              
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps({'tokenIds': tokenIds})
+              }
+
+
+
+
+      Runtime: python3.8
+      Timeout: 10
+
   MyGetMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -697,15 +757,7 @@ Resources:
         - StatusCode: '200'
           ResponseModels:
             application/json: !Ref MyResponseModel
-
-
-  MyPostResource:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      RestApiId: !Ref MyApi
-      ParentId: !GetAtt MyApi.RootResourceId
-      PathPart: v1
-
+  
   MyPostMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -720,6 +772,30 @@ Resources:
           Fn::Sub: 
             - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
             - lambdaArn: !GetAtt MyLambdaFunction.Arn
+        IntegrationResponses:
+          - StatusCode: '200'
+            ResponseTemplates:
+              application/json: ""
+        PassthroughBehavior: WHEN_NO_MATCH
+      MethodResponses:
+        - StatusCode: '200'
+          ResponseModels:
+            application/json: !Ref MyResponseModel
+
+  MyGetMethod3:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref MyApi
+      ResourceId: !Ref MyResource2
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: 
+          Fn::Sub: 
+            - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+            - lambdaArn: !GetAtt MyLambdaFunction3.Arn
         IntegrationResponses:
           - StatusCode: '200'
             ResponseTemplates:
@@ -765,10 +841,25 @@ Resources:
           "required": ["swap"]
         }
 
+  MyDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: [MyPostMethod, MyGetMethod, MyGetMethod3]
+    Properties:
+      RestApiId: !Ref MyApi
+      Description: 'Deployment for MyApi'
+      StageName: 'prod'
+
   MyApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
       Name: MyApi
+# ************************** resource
+  MyPostResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref MyApi
+      ParentId: !GetAtt MyApi.RootResourceId
+      PathPart: v1
 
   MyResource:
     Type: AWS::ApiGateway::Resource
@@ -776,6 +867,15 @@ Resources:
       RestApiId: !Ref MyApi
       ParentId: !GetAtt MyApi.RootResourceId
       PathPart: GetTokenPairs
+
+  MyResource2:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref MyApi
+      ParentId: !GetAtt MyApi.RootResourceId
+      PathPart: GetTokensId
+
+# *************************** Lambda permission 
 
   MyLambdaPermission:
     Type: AWS::Lambda::Permission
@@ -800,108 +900,6 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MyApi}/* 
-
-  MyResource2:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      RestApiId: !Ref MyApi
-      ParentId: !GetAtt MyApi.RootResourceId
-      PathPart: GetTokensId
-
-  MyPostMethod2:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref MyApi
-      ResourceId: !Ref MyResource2
-      HttpMethod: POST  
-      AuthorizationType: NONE
-      Integration:
-        Type: AWS
-        IntegrationHttpMethod: POST
-        Uri:
-          Fn::Sub:
-            - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
-            - lambdaArn: !GetAtt MyLambdaFunction3.Arn
-        IntegrationResponses:
-          - StatusCode: '200'
-            ResponseTemplates:
-              application/json: ""
-        PassthroughBehavior: WHEN_NO_MATCH
-      MethodResponses:
-        - StatusCode: '200'
-          ResponseModels:
-            application/json: !Ref MyResponseModel
-
-
-
-  MyLambdaFunction3:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: GetTokenIdsByAddress
-      Handler: index.lambda_handler
-      Role: !Join
-        - ''
-        - - 'arn:aws:iam::'
-          - !Ref 'AWS::AccountId'
-          - ':role/m_lambda'
-      Code:
-        ZipFile: |
-          import boto3
-          import json
-
-          def lambda_handler(event, context):
-              dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-              table = dynamodb.Table('spNftTransferEvents')
-              
-              userAddress = event.get('userAddress', None)
-              lpTokenAddress = event.get('lpTokenAddress', None)
-              
-              if not userAddress or not lpTokenAddress:
-                  return {
-                      'statusCode': 400,
-                      'body': json.dumps('Missing userAddress or lpTokenAddress')
-                  }
-                  
-              try:
-                  response = table.query(
-                      IndexName='UserLpIndex',
-                      KeyConditionExpression='userAddress = :userAddressValue AND lpTokenAddress = :lpTokenAddressValue',
-                      ExpressionAttributeValues={
-                          ':userAddressValue': userAddress,
-                          ':lpTokenAddressValue': lpTokenAddress
-                      }
-                  )
-
-              except Exception as e:
-                  print(e)
-                  return {
-                      'statusCode': 500,
-                      'body': json.dumps('Error reading from DynamoDB')
-                  }
-              
-              items = response.get('Items', [])
-              tokenIds = [int(item.get('tokenId', 0)) for item in items]
-
-              
-              return {
-                  'statusCode': 200,
-                  'body': json.dumps({'tokenIds': tokenIds})
-              }
-
-
-
-      Runtime: python3.8
-      Timeout: 10
-
-  MyDeployment:
-    Type: AWS::ApiGateway::Deployment
-    DependsOn: [MyPostMethod, MyGetMethod, MyPostMethod2]
-    Properties:
-      RestApiId: !Ref MyApi
-      Description: 'Deployment for MyApi'
-      StageName: 'prod'
-
-  
 
 Outputs:
   MyApiUrl:

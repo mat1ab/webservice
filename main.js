@@ -76,6 +76,22 @@ async function startBasePoolFactoryListener() {
 }
 
 
+async function runTokenPairsScriptImmediatelyAndSchedule() {
+    try {
+        // Immediately run the script
+        await tokenPairsScript.runTokenPairsScript();
+
+        // Schedule it to run every 30 minutes
+        setInterval(() => {
+            tokenPairsScript.runTokenPairsScript()
+                .catch(error => {
+                    console.error('Error running token pairs script:', error);
+                });
+        }, 60  * 30 * 1000); // 30 minutes
+    } catch (error) {
+        console.error('Error running token pairs script immediately:', error);
+    }
+}
 
 function connectToProvider() {
   provider = new ethers.providers.WebSocketProvider(providerUrl);
@@ -96,12 +112,7 @@ function connectToProvider() {
     setTimeout(connectToProvider, 30000);
   });
 
-  setInterval(() => {
-    tokenPairsScript.runTokenPairsScript()
-        .catch(error => {
-            console.error('Error running token pairs script:', error);
-        });
-  }, 60  * 30 * 1000); // 30 minutes cron
+  runTokenPairsScriptImmediatelyAndSchedule();
 
   startPairCreatedListener();
   startSwapListener();

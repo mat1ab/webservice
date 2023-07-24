@@ -63,7 +63,7 @@ async function startBasePoolListener() {
   } catch (err) {
     logger.error(`Error occurred in BasePoolListener.start: ${err}`);
     console.error("Error occurred in BasePoolListener.start:", err);
-    setTimeout(startBasePoolListener, 100000);  // 100 seconds
+    setTimeout(startBasePoolListener, 60000);  // 60 seconds
   }
 }
 

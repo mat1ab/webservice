@@ -93,6 +93,7 @@ async function getPastEvents(contract) {
 }
 
 async function start() {
+    console.log('xxxxxxxxxxxgNft')
     const contract = new ethers.Contract(address, gNftAbi, provider);
     await getPastEvents(contract);
 

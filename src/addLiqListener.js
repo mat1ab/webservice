@@ -121,7 +121,7 @@ async function start(provider) {
 
   setInterval(async () => {
     await listenForMintBurnEvents();
-  }, 30000);
+  }, 60000);
 }
 
 module.exports = {

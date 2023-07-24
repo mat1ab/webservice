@@ -6,7 +6,7 @@ const AddLiqListener = require(`${PROJ_ROOT}/src/addLiqListener`);
 const PairCreatedListener = require(`${PROJ_ROOT}/src/pairCreatedListener`)
 const tokenPairsScript = require(`${PROJ_ROOT}/src/utils/tokenPairsScript.js`);
 const BasePoolListener = require(`${PROJ_ROOT}/src/basePoolListener.js`)
-const BasePoolFactoryListener = require(`${PROJ_ROOT}/src/basePoolFactoryListener.js`)
+const GNftListener = require(`${PROJ_ROOT}/src/gNftListener.js`)
 
 
 const providerUrl = 'wss://testnet.era.zksync.dev/ws';
@@ -26,6 +26,7 @@ async function keepAlive() {
 }
 
 async function startSwapListener() {
+  logger.info('SwapListener is starting');
   try {
     await SwapListener.start(provider);
   } catch (err) {
@@ -36,6 +37,7 @@ async function startSwapListener() {
 }
 
 async function startAddLiqListener() {
+  logger.info('AddLiqListener is starting');
   try {
     await AddLiqListener.start(provider);
   } catch (err) {
@@ -65,23 +67,21 @@ async function startBasePoolListener() {
   }
 }
 
-async function startBasePoolFactoryListener() {
+
+async function startGNftListener() {
   try {
-    await BasePoolFactoryListener.start(provider);
+    await GNftListener.start(provider);
   } catch (err) {
-    logger.error(`Error occurred in BasePoolFactoryListener.start: ${err}`);
-    console.error("Error occurred in BasePoolFactoryListener.start:", err);
-    setTimeout(BasePoolFactoryListener, 30000);  // 30 seconds
+    logger.error(`Error occurred in GNftListener.start: ${err}`);
+    console.error("Error occurred in GNftListener.start:", err);
+    setTimeout(GNftListener, 30000);  // 30 seconds
   }
 }
 
 
 async function runTokenPairsScriptImmediatelyAndSchedule() {
     try {
-        // Immediately run the script
         await tokenPairsScript.runTokenPairsScript();
-
-        // Schedule it to run every 30 minutes
         setInterval(() => {
             tokenPairsScript.runTokenPairsScript()
                 .catch(error => {
@@ -118,7 +118,7 @@ function connectToProvider() {
   startSwapListener();
   startAddLiqListener();
   startBasePoolListener();
-  startBasePoolFactoryListener();
+  startGNftListener();
   keepAlive();
 }
 

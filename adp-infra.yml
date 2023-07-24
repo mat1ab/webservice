@@ -30,7 +30,6 @@ Metadata:
       #   Parameters:
       #     - SSHLocation
 
-
 Parameters:
   VpcCIDR:  
     Description: Please enter the IP range (CIDR notation) for this VPC
@@ -111,8 +110,6 @@ Parameters:
   DynamoDBTableThree:
     Type: String
     Default: "spNftTransferEvents"
-
-
   
 Resources:
   ## Create the VPC
@@ -166,7 +163,6 @@ Resources:
       Tags: 
         - Key: Name
           Value: Public Subnet 2
-
 
   ## Create Public Subnet3
   PublicSubnet3:
@@ -393,7 +389,6 @@ Resources:
           - !Ref PublicSubnet2
           - !Ref PublicSubnet3
 
-  
   EC2InstanceIAMRole:
       Type: AWS::IAM::Role
       Properties: 
@@ -474,7 +469,6 @@ Resources:
         - AttributeName: token1
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
-
  
   SpNftTransferEventsTable:
     Type: AWS::DynamoDB::Table
@@ -503,8 +497,24 @@ Resources:
           Projection:
             ProjectionType: ALL
 
+  GNftTransferEventsTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: 'gNftTransferEvents'
+      AttributeDefinitions:
+        - 
+          AttributeName: 'userAddress'
+          AttributeType: 'S'
+      KeySchema:
+        - 
+          AttributeName: 'userAddress'
+          KeyType: 'HASH'
+      BillingMode: PAY_PER_REQUEST
+      Tags:
+        - Key: 'Name'
+          Value: 'gNftTransferEvents'
 
-  
+
   EBSKey:
     Type: AWS::KMS::Key
     Properties: 
@@ -581,7 +591,6 @@ Resources:
             Condition: 
               Bool:
                 kms:GrantIsForAWSResource: true
-
 
   EBSKeyAlias:
     Type: AWS::KMS::Alias
@@ -677,7 +686,7 @@ Resources:
   MyLambdaFunction3:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: GetTokenIdsByAddress
+      FunctionName: GetSpNftTokenIdsByAddress
       Handler: index.lambda_handler
       Role: !Join
         - ''
@@ -730,6 +739,60 @@ Resources:
 
 
 
+
+      Runtime: python3.8
+      Timeout: 10
+
+  MyLambdaFunction4:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: GetGNftTokenIdsByAddress
+      Handler: index.lambda_handler
+      Role: !Join
+        - ''
+        - - 'arn:aws:iam::'
+          - !Ref 'AWS::AccountId'
+          - ':role/m_lambda'
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+
+          def lambda_handler(event, context):
+              query_string_parameters = event.get('queryStringParameters', {})
+              user_address = query_string_parameters.get('userAddress')
+              if not user_address:
+                  return {
+                      'statusCode': 400,
+                      'body': json.dumps({'error': 'The parameter userAddress is required.'})
+                  }
+
+              dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+              table = dynamodb.Table('gNftTransferEvents')
+
+              try:
+                  response = table.get_item(Key={'userAddress': user_address})
+                  item = response.get('Item')
+                  if item:
+                      token_ids = item.get('tokenIds')
+                      if isinstance(token_ids, set):
+                          token_ids = list(token_ids)  
+                  else:
+                      token_ids = []
+                  
+                  return {
+                      'statusCode': 200,
+                      'body': json.dumps({'tokenIds': token_ids})
+                  }
+              except Exception as e:
+                  
+                  error_message = str(e)
+                  print(f"Failed to get item. Error: {error_message}")
+                  
+                  return {
+                      'statusCode': 500,
+                      'body': json.dumps({'error': 'Unable to complete the query.', 'detail': error_message})
+                  }
 
       Runtime: python3.8
       Timeout: 10
@@ -806,6 +869,31 @@ Resources:
           ResponseModels:
             application/json: !Ref MyResponseModel
 
+  MyGetMethod4:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref MyApi
+      ResourceId: !Ref MyResource3
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: 
+          Fn::Sub: 
+            - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+            - lambdaArn: !GetAtt MyLambdaFunction4.Arn
+        IntegrationResponses:
+          - StatusCode: '200'
+            ResponseTemplates:
+              application/json: ""
+        PassthroughBehavior: WHEN_NO_MATCH
+      MethodResponses:
+        - StatusCode: '200'
+          ResponseModels:
+            application/json: !Ref MyResponseModel
+
+
   MyResponseModel:
     Type: AWS::ApiGateway::Model
     Properties:
@@ -843,7 +931,7 @@ Resources:
 
   MyDeployment:
     Type: AWS::ApiGateway::Deployment
-    DependsOn: [MyPostMethod, MyGetMethod, MyGetMethod3]
+    DependsOn: [MyPostMethod, MyGetMethod, MyGetMethod3, MyGetMethod4]
     Properties:
       RestApiId: !Ref MyApi
       Description: 'Deployment for MyApi'
@@ -873,7 +961,15 @@ Resources:
     Properties:
       RestApiId: !Ref MyApi
       ParentId: !GetAtt MyApi.RootResourceId
-      PathPart: GetTokensId
+      PathPart: GetSpNftTokenIds
+
+  MyResource3:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref MyApi
+      ParentId: !GetAtt MyApi.RootResourceId
+      PathPart: GetGNftTokenIds
+
 
 # *************************** Lambda permission 
 
@@ -897,6 +993,14 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref MyLambdaFunction3
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MyApi}/* 
+  
+  MyLambdaPermission4:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref MyLambdaFunction4
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MyApi}/* 

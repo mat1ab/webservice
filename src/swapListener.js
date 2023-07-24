@@ -6,6 +6,7 @@ const PROJ_ROOT = process.env.PROJ_ROOT;
 const pairAbi = require(`${PROJ_ROOT}/src/abis/pair_abi.json`);
 const logger = require(`${PROJ_ROOT}/src/winston`);
 const config = require(`${PROJ_ROOT}/src/config/config.json`); 
+let registeredPairs = new Set();
 
 AWS.config.update({
   region: config.awsRegion,
@@ -94,22 +95,27 @@ async function handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1
   }
 }
 
+
+
 async function start(provider) {
   const listenForSwapEvents = async () => {
     const pairAddresses = await loadPairAddressesFromDB();
     pairAddresses.forEach(pairAddress => {
-      const pairContract = new ethers.Contract(pairAddress, pairAbi, provider);
-      pairContract.on('Swap', handleSwapEvent);
+      if (!registeredPairs.has(pairAddress)) {
+        const pairContract = new ethers.Contract(pairAddress, pairAbi, provider);
+        pairContract.on('Swap', handleSwapEvent);
+        registeredPairs.add(pairAddress);
+      }
     });
   };
-
 
   await listenForSwapEvents();
 
   setInterval(async () => {
     await listenForSwapEvents();
-  }, 30000);
+  }, 60000);
 }
+
 
 module.exports = {
   start

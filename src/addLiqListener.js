@@ -108,6 +108,7 @@ async function handleBurnEvent(sender, amount0, amount1, to, event) {
 }
 
 async function start(provider) {
+  console.log('xxxxxxxxxxxaddLiqListener')
   const listenForMintBurnEvents = async () => {
     const pairAddresses = await loadPairAddressesFromDB();
     pairAddresses.forEach(pairAddress => {

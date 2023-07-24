@@ -36,7 +36,6 @@ async function loadPairAddressesFromDB() {
   }
 }
 
-
 async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, eventData, timestamp, pairAddress) {
   const params = {
     TableName: 'ADP1', 
@@ -95,31 +94,18 @@ async function handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1
   }
 }
 
-
-
 async function start(provider) {
-  const listenForSwapEvents = async () => {
-    const pairAddresses = await loadPairAddressesFromDB();
-    pairAddresses.forEach(pairAddress => {
-      if (!registeredPairs.has(pairAddress)) {
-        const pairContract = new ethers.Contract(pairAddress, pairAbi, provider);
-        pairContract.on('Swap', handleSwapEvent);
-        registeredPairs.add(pairAddress);
-      }
-    });
-  };
-
-  await listenForSwapEvents();
-
-  setInterval(async () => {
-    await listenForSwapEvents();
-  }, 60000);
+  console.log('xxxxxxxxxxxswap');
+  const pairAddresses = await loadPairAddressesFromDB();
+  pairAddresses.forEach(pairAddress => {
+    if (!registeredPairs.has(pairAddress)) {
+      const pairContract = new ethers.Contract(pairAddress, pairAbi, provider);
+      pairContract.on('Swap', handleSwapEvent);
+      registeredPairs.add(pairAddress);
+    }
+  });
 }
-
 
 module.exports = {
   start
 };
-
-
-

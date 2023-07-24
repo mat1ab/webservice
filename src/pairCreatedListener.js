@@ -21,7 +21,6 @@ async function handlePairCreatedEvent(token0, token1, pairAddress, event, provid
 
     const balance = await provider.getBalance(pairAddress);
 
-
     console.log(`Balance of pairAddress: ${ethers.utils.formatEther(balance)}`); // Balance in Ether
 
     const params = {
@@ -39,26 +38,15 @@ async function handlePairCreatedEvent(token0, token1, pairAddress, event, provid
     } catch (err) {
         console.error("Unable to add item. Error JSON:", JSON.stringify(err, null, 2));
     }
-   
 }
-
-let eventQueue = [];
 
 async function start(provider) {
+console.log('xxxxxxxxxxxpairCreated');
   let factory = new ethers.Contract(factoryAddress, factoryAbi, provider);
   factory.on("PairCreated", async (token0, token1, pairAddress, event) => {
-    eventQueue.push({ token0, token1, pairAddress, event });
+    await handlePairCreatedEvent(token0, token1, pairAddress, event, provider);
   });
-
-  setInterval(async () => {
-    let tempQueue = [...eventQueue];
-    eventQueue = [];
-    for (let event of tempQueue) {
-      await handlePairCreatedEvent(event.token0, event.token1, event.pairAddress, event.event, provider);
-    }
-  }, 60000);
 }
-
 
 module.exports = {
     start

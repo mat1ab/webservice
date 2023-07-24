@@ -53,7 +53,7 @@ async function startPairCreatedListener() {
   } catch (err) {
     logger.error(`Error occurred in AddLiqListener.start: ${err}`);
     console.error("Error occurred in AddLiqListener.start:", err);
-    setTimeout(startAddLiqListener, 30000);  // 30 seconds
+    setTimeout(startAddLiqListener, 40000);  // 40 seconds
   }
 }
 
@@ -63,7 +63,7 @@ async function startBasePoolListener() {
   } catch (err) {
     logger.error(`Error occurred in BasePoolListener.start: ${err}`);
     console.error("Error occurred in BasePoolListener.start:", err);
-    setTimeout(startBasePoolListener, 30000);  // 30 seconds
+    setTimeout(startBasePoolListener, 50000);  // 50 seconds
   }
 }
 
@@ -74,7 +74,7 @@ async function startGNftListener() {
   } catch (err) {
     logger.error(`Error occurred in GNftListener.start: ${err}`);
     console.error("Error occurred in GNftListener.start:", err);
-    setTimeout(GNftListener, 30000);  // 30 seconds
+    setTimeout(GNftListener, 60000);  // 60 seconds
   }
 }
 

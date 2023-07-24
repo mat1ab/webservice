@@ -3,5 +3,6 @@
     "awsRegion": "us-east-1",
     "esArrTokenAddress":"0xBA6b908fd2dFf34D31445C7bAF9e681B37550558",
     "arr_eth_nftPool":"0xcAF46b741A636d51C0388a0d709943d41be009E2",
-    "nftPoolFactoryAddress": "0x98b00E112231758D19aC813DbB7312e1fca50E67"
+    "nftPoolFactoryAddress": "0x98b00E112231758D19aC813DbB7312e1fca50E67",
+    "gNftAddress" : "0xe37695f5c05241daD4759f9e29101B95388c49E4"
 }

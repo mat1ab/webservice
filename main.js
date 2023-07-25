@@ -111,14 +111,32 @@ function connectToProvider() {
     console.error("WebSocket connection ended, trying to reconnect...");
     setTimeout(connectToProvider, 30000);
   });
+  keepAlive();
 
+  setTimeout(() => {
+    startGNftListener();
+  }, 50000);
+
+  setTimeout(() => {
+    startPairCreatedListener();
+  }, 60000);
+
+  setTimeout(() => {
+    startSwapListener();
+  }, 80000);
+
+  setTimeout(() => {
+    startAddLiqListener();
+  }, 90000);
+
+  setTimeout(() => {
+    startBasePoolListener();
+  }, 100000);
+
+  setTimeout(() => {
   runTokenPairsScriptImmediatelyAndSchedule();
+  }, 110000);
 
-  startPairCreatedListener();
-  startSwapListener();
-  startAddLiqListener();
-  startBasePoolListener();
-  startGNftListener();
   keepAlive();
 }
 

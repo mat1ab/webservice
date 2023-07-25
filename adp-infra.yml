@@ -757,18 +757,25 @@ Resources:
         ZipFile: |
           import boto3
           import json
+          from decimal import Decimal
+
+          class DecimalEncoder(json.JSONEncoder):
+              def default(self, o):
+                  if isinstance(o, Decimal):
+                      return str(o)
+                  return super(DecimalEncoder, self).default(o)
+
+          dynamoDB = boto3.resource('dynamodb', region_name='us-east-1')
+          table = dynamoDB.Table('gNftTransferEvents')
 
           def lambda_handler(event, context):
-              query_string_parameters = event.get('queryStringParameters', {})
-              user_address = query_string_parameters.get('userAddress')
-              if not user_address:
+              try:
+                  user_address = event['queryStringParameters']['userAddress']
+              except KeyError:
                   return {
                       'statusCode': 400,
                       'body': json.dumps({'error': 'The parameter userAddress is required.'})
                   }
-
-              dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-              table = dynamodb.Table('gNftTransferEvents')
 
               try:
                   response = table.get_item(Key={'userAddress': user_address})
@@ -782,10 +789,9 @@ Resources:
                   
                   return {
                       'statusCode': 200,
-                      'body': json.dumps({'tokenIds': token_ids})
+                      'body': json.dumps({'tokenIds': token_ids}, cls=DecimalEncoder) # 使用自定义的JSON Encoder
                   }
               except Exception as e:
-                  
                   error_message = str(e)
                   print(f"Failed to get item. Error: {error_message}")
                   
@@ -793,6 +799,7 @@ Resources:
                       'statusCode': 500,
                       'body': json.dumps({'error': 'Unable to complete the query.', 'detail': error_message})
                   }
+
 
       Runtime: python3.8
       Timeout: 10

@@ -114,6 +114,10 @@ function connectToProvider() {
   keepAlive();
 
   setTimeout(() => {
+    runTokenPairsScriptImmediatelyAndSchedule();
+    }, 50000);
+
+  setTimeout(() => {
     startGNftListener();
   }, 50000);
 
@@ -123,21 +127,16 @@ function connectToProvider() {
 
   setTimeout(() => {
     startSwapListener();
-  }, 80000);
+  }, 60000);
 
   setTimeout(() => {
     startAddLiqListener();
-  }, 90000);
+  }, 60000);
 
   setTimeout(() => {
     startBasePoolListener();
-  }, 100000);
+  }, 60000);
 
-  setTimeout(() => {
-  runTokenPairsScriptImmediatelyAndSchedule();
-  }, 110000);
-
-  keepAlive();
 }
 
 connectToProvider();

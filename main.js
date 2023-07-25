@@ -21,7 +21,7 @@ async function keepAlive() {
     logger.error(`Error occurred in keepAlive: ${err}`);
     console.error("Error occurred in keepAlive: ", err);
   } finally {
-    setTimeout(keepAlive, 60000);  // 60 seconds
+    setTimeout(keepAlive, 600000);  // 600 seconds
   }
 }
 

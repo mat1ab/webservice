@@ -58,16 +58,34 @@ async function storeTokenPairsToDB(pairAddresses) {
     }
 }
 
+async function getStoredPairsCount() {
+    const params = {
+        TableName: 'TokenPairs'
+    };
+
+    const data = await dynamodb.scan(params).promise();
+    return data.Items.length;
+}
+
 async function runTokenPairsScript() {
     try {
         const pairAddresses = await getAllPairAddresses();
         console.log('All pair addresses:', pairAddresses);
-        await storeTokenPairsToDB(pairAddresses);
-        console.log('Token pairs stored in the database.');
+
+        const storedPairsCount = await getStoredPairsCount();
+        console.log('Stored pairs count:', storedPairsCount);
+
+        if (pairAddresses.length > storedPairsCount) {
+            await storeTokenPairsToDB(pairAddresses);
+            console.log('Token pairs stored in the database.');
+        } else {
+            console.log('No new token pairs. No need to update the database.');
+        }
     } catch (error) {
         console.error('Error running token pairs script:', error);
     }
 }
+
 
 module.exports = {
     runTokenPairsScript

@@ -1,17 +1,19 @@
 const ethers = require('ethers');
 const AWS = require('aws-sdk');
-
+const path = require('path');
 const PROJ_ROOT = process.env.PROJ_ROOT;
 const config = require(`${PROJ_ROOT}/src/config/config.json`);
 const gNftAbi = require(`${PROJ_ROOT}/src/abis/gNft_abi.json`);
 const address = config.gNftAddress;
 let provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
 
+const listenerId = path.basename(__filename, '.js'); 
 
 AWS.config.update({
   region: config.awsRegion,
 });
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
+const contract = new ethers.Contract(address, gNftAbi, provider);
 
 async function handleEvent(tokenId, to, from) {
     console.log('Transfer event detected:');
@@ -19,7 +21,6 @@ async function handleEvent(tokenId, to, from) {
     console.log(`- To: ${to}`);
     console.log(`- From: ${from}`);
 
-    // 如果from地址存在且不为0
     if (from && from !== '0x0000000000000000000000000000000000000000') {
         try {
             const getParamsFrom = {
@@ -29,16 +30,13 @@ async function handleEvent(tokenId, to, from) {
                 }
             };
             let resultFrom = await dynamoDB.get(getParamsFrom).promise();
-            // 如果tokenIds存在，则将其转化为数组，否则初始化为空数组
             let existingTokenIdsFrom = resultFrom.Item && resultFrom.Item.tokenIds ? resultFrom.Item.tokenIds : [];
 
-            // 从列表中移除当前的tokenId
             let tokenIdIndex = existingTokenIdsFrom.indexOf(Number(tokenId));
             if (tokenIdIndex > -1) {
                 existingTokenIdsFrom.splice(tokenIdIndex, 1);
             }
 
-            // 更新from地址的tokenId列表
             const updateParamsFrom = {
                 TableName: 'gNftTransferEvents',
                 Key: {
@@ -57,7 +55,6 @@ async function handleEvent(tokenId, to, from) {
         }
     }
 
-    // 处理to地址
     try {
         const getParamsTo = {
             TableName: 'gNftTransferEvents',
@@ -67,12 +64,9 @@ async function handleEvent(tokenId, to, from) {
         };
 
         const resultTo = await dynamoDB.get(getParamsTo).promise();
-        // 如果tokenIds存在，则将其转化为数组，否则初始化为空数组
         let existingTokenIdsTo = resultTo.Item && resultTo.Item.tokenIds ? resultTo.Item.tokenIds : [];
     
-        // 检查tokenId是否已经存在于existingTokenIdsTo
         if (!existingTokenIdsTo.includes(Number(tokenId))) {
-            // 将新的tokenId添加到existingTokenIds列表
             existingTokenIdsTo.push(Number(tokenId));
         }
 
@@ -95,27 +89,75 @@ async function handleEvent(tokenId, to, from) {
     }
 }
 
-// async function getPastEvents(contract) {
-//     let filter = contract.filters.Transfer();
-    
-//     let events = await contract.queryFilter(filter, 0, 'latest');
-    
-//     for (let event of events) {
-//         const {args} = event;
-//         await handleEvent(args.tokenId, args.to, args.from);
-//     }
-// }
+async function getLastBlock() {
+    const getParams = {
+      TableName: 'LastProcessedBlock',
+      Key: {
+        'listenerId': listenerId,
+      }
+    };
+  
+    let result = await dynamoDB.get(getParams).promise();
+    if (!result.Item) {
+      await setLastBlock(0);
+      return 0;
+    }
+  
+    return result.Item.blockNumber ? result.Item.blockNumber : 0;
+  }
+  
+  async function setLastBlock(blockNumber) {
+    const putParams = {
+      TableName: 'LastProcessedBlock',
+      Item: {
+        'listenerId': listenerId,
+        'blockNumber': blockNumber
+      }
+    };
+  
+    await dynamoDB.put(putParams).promise();
+  }
+  
 
-async function start() {
-    const contract = new ethers.Contract(address, gNftAbi, provider);
-    // await getPastEvents(contract);
-    contract.on("Transfer", async (from, to, tokenId) => { 
-        console.log('xxxxx_____gNft____xxxxxxx');
-        await handleEvent(tokenId, to, from);
-    });
-   
+  async function getPastEvents() {
+    let lastBlock = await getLastBlock();
+    let filter = contract.filters.Transfer();
+  
+    let events = await contract.queryFilter(filter, lastBlock + 1, 'latest');
+    let newLastBlock = lastBlock;
+  
+    if (events.length > 0) {
+      for (let event of events) {
+        const {args, blockNumber} = event;
+        await handleEvent(args.tokenId, args.to, args.from);
+        if (blockNumber > newLastBlock) {
+          newLastBlock = blockNumber;
+        }
+      }
+    } else {
+      newLastBlock = await provider.getBlockNumber();
+    }
+  
+    if (newLastBlock > lastBlock) {
+      await setLastBlock(newLastBlock);
+    }
+  }
+  
+
+getPastEvents().catch(console.error);
+
+
+async function runHistoryDataScript() {
+    try {
+        console.log('Starting to get past events...');
+        await getPastEvents();
+        console.log('Past events fetched and processed.');
+    } catch (error) {
+        console.error('Error running history data script:', error);
+    }
 }
 
 module.exports = {
-  start
+    runHistoryDataScript
 };
+

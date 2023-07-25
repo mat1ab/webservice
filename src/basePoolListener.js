@@ -41,21 +41,21 @@ async function handleTransferEvent(tokenId, to, from, lpTokenAddress, contractAd
   }
 }
 
-async function getPastEvents(pairContract) {
-  const filter = pairContract.filters.Transfer(null, null, null);
-  const events = await pairContract.queryFilter(filter, 0, 'latest');
+// async function getPastEvents(pairContract) {
+//   const filter = pairContract.filters.Transfer(null, null, null);
+//   const events = await pairContract.queryFilter(filter, 0, 'latest');
   
-  for (const event of events) {
-    const {from, to, tokenId} = event.args;
-    await handleTransferEvent(tokenId, to, from, pairContract.lpTokenAddress, pairContract.address);
-  }
-}
+//   for (const event of events) {
+//     const {from, to, tokenId} = event.args;
+//     await handleTransferEvent(tokenId, to, from, pairContract.lpTokenAddress, pairContract.address);
+//   }
+// }
 
 async function start() {
   for (let address of addresses) {
     const pairContract = new ethers.Contract(address.contractAddress, basePoolAbi, provider);
     pairContract.lpTokenAddress = address.lpTokenAddress;  
-    await getPastEvents(pairContract);
+    // await getPastEvents(pairContract);
     pairContract.on("Transfer", async (from, to, tokenId) => { 
         await handleTransferEvent(tokenId, to, from, pairContract.lpTokenAddress, pairContract.address);
     });

@@ -87,7 +87,7 @@ async function runTokenPairsScriptImmediatelyAndSchedule() {
                 .catch(error => {
                     console.error('Error running token pairs script:', error);
                 });
-        }, 60  * 30 * 1000); // 30 minutes
+        }, 60  * 5 * 1000); // 5 minutes
     } catch (error) {
         console.error('Error running token pairs script immediately:', error);
     }

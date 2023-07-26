@@ -515,6 +515,21 @@ Resources:
           Value: 'gNftTransferEvents'
 
 
+  LastProcessedBlock:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: LastProcessedBlock
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - 
+          AttributeName: listenerId
+          AttributeType: S
+      KeySchema:
+        - 
+          AttributeName: listenerId
+          KeyType: HASH
+
+
   EBSKey:
     Type: AWS::KMS::Key
     Properties: 

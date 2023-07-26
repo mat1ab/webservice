@@ -6,7 +6,6 @@ const PROJ_ROOT = process.env.PROJ_ROOT;
 const config = require(`${PROJ_ROOT}/src/config/config.json`);
 const basePoolAbi = require(`${PROJ_ROOT}/src/abis/basePool_abi.json`);
 
-const provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
 
 AWS.config.update({
   region: config.awsRegion,
@@ -41,17 +40,8 @@ async function handleTransferEvent(tokenId, to, from, lpTokenAddress, contractAd
   }
 }
 
-// async function getPastEvents(pairContract) {
-//   const filter = pairContract.filters.Transfer(null, null, null);
-//   const events = await pairContract.queryFilter(filter, 0, 'latest');
-  
-//   for (const event of events) {
-//     const {from, to, tokenId} = event.args;
-//     await handleTransferEvent(tokenId, to, from, pairContract.lpTokenAddress, pairContract.address);
-//   }
-// }
 
-async function start() {
+async function start(provider) {
   for (let address of addresses) {
     const pairContract = new ethers.Contract(address.contractAddress, basePoolAbi, provider);
     pairContract.lpTokenAddress = address.lpTokenAddress;  

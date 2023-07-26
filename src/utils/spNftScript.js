@@ -8,7 +8,6 @@ const addresses = require(`${PROJ_ROOT}/src/config/farmConfig.json`);
 const config = require(`${PROJ_ROOT}/src/config/config.json`);
 const basePoolAbi = require(`${PROJ_ROOT}/src/abis/basePool_abi.json`);
 
-const provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
 
 AWS.config.update({
   region: config.awsRegion,
@@ -43,7 +42,7 @@ async function handleTransferEvent(tokenId, to, from, lpTokenAddress, contractAd
   }
 }
 
-async function getPastEvents(pairContract, lastBlock) {
+async function getPastEvents(pairContract, lastBlock, provider) {
     const filter = pairContract.filters.Transfer(null, null, null);
     const events = await pairContract.queryFilter(filter, lastBlock, 'latest');
   
@@ -104,12 +103,12 @@ async function setLastBlock(blockNumber) {
     await dynamoDB.update(updateParams).promise();
   }
   
-  async function runHistoryDataScript() {
+  async function runHistoryDataScript(provider) {
     let lastBlock = await getLastBlock();
     for (let address of addresses) {
       const pairContract = new ethers.Contract(address.contractAddress, basePoolAbi, provider);
       pairContract.lpTokenAddress = address.lpTokenAddress;
-      lastBlock = await getPastEvents(pairContract, lastBlock);
+      lastBlock = await getPastEvents(pairContract, lastBlock, provider);
       await setLastBlock(lastBlock);
       pairContract.on("Transfer", async (from, to, tokenId, event) => {
           await handleTransferEvent(tokenId, to, from, pairContract.lpTokenAddress, pairContract.address);

@@ -14,7 +14,7 @@ AWS.config.update({
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
-let counter = 0;
+// let counter = 0;
 let chalk;
 
 import('chalk').then((module) => {
@@ -62,14 +62,14 @@ async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNum
 
 async function handleSwapEvent(userID, amount0In, amount1In, amount0Out, amount1Out, to, event) {
   try {
-    counter++;
+    // counter++;
     const timestamp = Math.floor(Date.now() / 1000);
     const userID = to.toString();
-    console.log(chalk.green(`Listening no.#${counter} swap event at ${timestamp}:`));
-    logger.info(`Listening no.#${counter} swap event at ${timestamp}:`);
+    // console.log(chalk.green(`Listening no.#${counter} swap event at ${timestamp}:`));
+    // logger.info(`Listening no.#${counter} swap event at ${timestamp}:`);
 
-    console.log(`Transaction target address: ${to}`);
-    logger.info(`Transaction target address: ${to}`);
+    console.log(`swap Transaction target address: ${to}`);
+    logger.info(`swap Transaction target address: ${to}`);
 
     if (event.transactionHash) {
       console.log(`Transaction Hash: ${event.transactionHash}`);

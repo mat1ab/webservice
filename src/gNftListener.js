@@ -5,7 +5,6 @@ const PROJ_ROOT = process.env.PROJ_ROOT;
 const config = require(`${PROJ_ROOT}/src/config/config.json`);
 const gNftAbi = require(`${PROJ_ROOT}/src/abis/gNft_abi.json`);
 const address = config.gNftAddress;
-let provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
 
 
 AWS.config.update({
@@ -94,26 +93,18 @@ async function handleEvent(tokenId, to, from) {
         console.error("无法向'to'地址添加tokenId。错误信息：", err);
     }
 }
-
-// async function getPastEvents(contract) {
-//     let filter = contract.filters.Transfer();
-    
-//     let events = await contract.queryFilter(filter, 0, 'latest');
-    
-//     for (let event of events) {
-//         const {args} = event;
-//         await handleEvent(args.tokenId, args.to, args.from);
-//     }
-// }
-
-async function start() {
+async function start(provider) {
     const contract = new ethers.Contract(address, gNftAbi, provider);
-    // await getPastEvents(contract);
-    contract.on("Transfer", async (from, to, tokenId) => { 
-        console.log('xxxxx_____gNft____xxxxxxx');
-        await handleEvent(tokenId, to, from);
+    provider.on("*", (result) => {
+        console.log(result);
     });
-   
+    contract.on("Transfer", (from, to, tokenId) => { 
+        console.log('xxxxx_____gNft____xxxxxxx');
+        handleEvent(tokenId, to, from)
+            .catch(err => {
+                console.error('Error handling event:', err);
+            });
+    });
 }
 
 module.exports = {

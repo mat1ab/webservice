@@ -6,7 +6,6 @@ const factoryAbi = require(`${PROJ_ROOT}/src/abis/factory_abi.json`);
 const pairAbi = require(`${PROJ_ROOT}/src/abis/pair_abi.json`);
 const config = require(`${PROJ_ROOT}/src/config/config.json`);
 const factoryAddress = config.factoryAddress;
-const provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
 
 AWS.config.update({
     region: config.awsRegion,
@@ -14,9 +13,7 @@ AWS.config.update({
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
-const factoryContract = new ethers.Contract(factoryAddress, factoryAbi, provider);
-
-async function getAllPairAddresses() {
+async function getAllPairAddresses(factoryContract) {
     const allPairsLength = await factoryContract.allPairsLength();
     const pairAddresses = [];
 
@@ -28,7 +25,7 @@ async function getAllPairAddresses() {
     return pairAddresses;
 }
 
-async function getTokenAddresses(pairAddress) {
+async function getTokenAddresses(pairAddress, provider) {
     const pairContract = new ethers.Contract(pairAddress, pairAbi, provider);
     const token0 = await pairContract.token0();
     const token1 = await pairContract.token1();
@@ -39,10 +36,10 @@ async function getTokenAddresses(pairAddress) {
     };
 }
 
-async function storeTokenPairsToDB(pairAddresses) {
+async function storeTokenPairsToDB(pairAddresses, provider) {
     for (let i = 0; i < pairAddresses.length; i++) {
         const pairAddress = pairAddresses[i];
-        const tokenAddresses = await getTokenAddresses(pairAddress);
+        const tokenAddresses = await getTokenAddresses(pairAddress, provider);
 
         const params = {
             TableName: 'TokenPairs',
@@ -67,16 +64,17 @@ async function getStoredPairsCount() {
     return data.Items.length;
 }
 
-async function runTokenPairsScript() {
+async function runTokenPairsScript(provider) {
+    const factoryContract = new ethers.Contract(factoryAddress, factoryAbi, provider);
     try {
-        const pairAddresses = await getAllPairAddresses();
+        const pairAddresses = await getAllPairAddresses(factoryContract);
         console.log('All pair addresses:', pairAddresses);
 
         const storedPairsCount = await getStoredPairsCount();
         console.log('Stored pairs count:', storedPairsCount);
 
         if (pairAddresses.length > storedPairsCount) {
-            await storeTokenPairsToDB(pairAddresses);
+            await storeTokenPairsToDB(pairAddresses, provider);
             console.log('Token pairs stored in the database.');
         } else {
             console.log('No new token pairs. No need to update the database.');
@@ -85,7 +83,6 @@ async function runTokenPairsScript() {
         console.error('Error running token pairs script:', error);
     }
 }
-
 
 module.exports = {
     runTokenPairsScript

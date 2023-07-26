@@ -13,6 +13,10 @@ const GNftListener = require(`${PROJ_ROOT}/src/gNftListener.js`)
 
 const providerUrl = 'wss://testnet.era.zksync.dev/ws';
 let provider;
+let reconnectTimeout = null;
+
+const EXPECTED_PONG_BACK = 15000;  
+const KEEP_ALIVE_CHECK_INTERVAL = 7500;  
 
 
 async function getSpNftHistoryData() {
@@ -130,10 +134,6 @@ async function startAllListeners() {
   startBasePoolListener();
 }
 
-let reconnectTimeout = null;
-
-const EXPECTED_PONG_BACK = 15000;  
-const KEEP_ALIVE_CHECK_INTERVAL = 7500;  
 
 function connectToProvider() {
   if (reconnectTimeout) {
@@ -184,7 +184,6 @@ function connectToProvider() {
     connectToProvider();
   });
 
-  startAllListeners();
 }
 
 

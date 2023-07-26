@@ -11,18 +11,18 @@ const tokenPairsScript = require(`${PROJ_ROOT}/src/utils/tokenPairsScript.js`);
 const BasePoolListener = require(`${PROJ_ROOT}/src/basePoolListener.js`)
 const GNftListener = require(`${PROJ_ROOT}/src/gNftListener.js`)
 
-
 const providerUrl = 'wss://testnet.era.zksync.dev/ws';
 let provider;
+
 
 async function getSpNftHistoryData() {
   try {
      // Schedule the script to run every 60 minutes
-     await spNftScript.runHistoryDataScript();
+     await spNftScript.runHistoryDataScript(provider);
 
     cron.schedule('0 * * * *', async () => {
         console.log('Running SpNft History Data Script every 60 minutes');
-        await spNftScript.runHistoryDataScript();
+        await spNftScript.runHistoryDataScript(provider);
     }, {
         scheduled: true,
         timezone: "America/Los_Angeles"
@@ -36,11 +36,11 @@ async function getSpNftHistoryData() {
 async function getGNftHistoryData() {
   try {
      // Schedule the script to run every 60 minutes
-     await gNftScript.runHistoryDataScript();
+     await gNftScript.runHistoryDataScript(provider);
 
     cron.schedule('0 * * * *', async () => {
         console.log('Running GNft History Data Script every 60 minutes');
-        await gNftScript.runHistoryDataScript();
+        await gNftScript.runHistoryDataScript(provider);
     }, {
         scheduled: true,
         timezone: "America/Los_Angeles"
@@ -105,11 +105,11 @@ async function startGNftListener() {
 
 async function runTokenPairsScript() {
   try {
-    await tokenPairsScript.runTokenPairsScript();
+    await tokenPairsScript.runTokenPairsScript(provider);
     // Schedule the script to run every 30 minutes
     cron.schedule('*/30 * * * *', async () => {
         try {
-            await tokenPairsScript.runTokenPairsScript();
+            await tokenPairsScript.runTokenPairsScript(provider);
         } catch (error) {
             console.error('Error running token pairs script:', error);
         }
@@ -120,6 +120,9 @@ async function runTokenPairsScript() {
 }
 
 async function startAllListeners() {
+  getSpNftHistoryData();
+  getGNftHistoryData();
+  runTokenPairsScript();
   startGNftListener();
   startPairCreatedListener();
   startSwapListener();
@@ -128,6 +131,9 @@ async function startAllListeners() {
 }
 
 let reconnectTimeout = null;
+
+const EXPECTED_PONG_BACK = 15000;  
+const KEEP_ALIVE_CHECK_INTERVAL = 7500;  
 
 function connectToProvider() {
   if (reconnectTimeout) {
@@ -141,26 +147,46 @@ function connectToProvider() {
 
   provider = new ethers.providers.WebSocketProvider(providerUrl);
 
-  provider.on("error", () => {
-    logger.error("WebSocket error occurred, trying to reconnect...");
-    console.error("WebSocket error occurred, trying to reconnect...");
-    reconnectTimeout = setTimeout(connectToProvider, 30000);
+  let pingTimeout = null;
+
+  provider._websocket.on('open', () => {
+    console.log("WebSocket connection established successfully.");
+    startAllListeners();
+
+    pingTimeout = setInterval(() => {
+      console.log('Checking if the connection is alive, sending a ping');
+      provider._websocket.ping();
+      
+      reconnectTimeout = setTimeout(() => {
+        console.log("WebSocket connection not responding, trying to reconnect...");
+        provider._websocket.terminate();
+        connectToProvider();
+      }, EXPECTED_PONG_BACK);
+    }, KEEP_ALIVE_CHECK_INTERVAL);
   });
 
-  provider.on("close", () => {
-    console.error("WebSocket connection closed, trying to reconnect...");
-    reconnectTimeout = setTimeout(connectToProvider, 30000);
+  provider._websocket.on('close', () => {
+    console.log("WebSocket connection closed.");
+    clearTimeout(reconnectTimeout);
+    clearTimeout(pingTimeout);
+    connectToProvider();
   });
 
-  provider.on("end", () => {
-    console.error("WebSocket connection ended, trying to reconnect...");
-    reconnectTimeout = setTimeout(connectToProvider, 30000);
+  provider._websocket.on('pong', () => {
+    console.log('Received pong, so connection is alive, clearing the timeout');
+    clearTimeout(reconnectTimeout);
   });
 
-  getSpNftHistoryData();
-  getGNftHistoryData();
-  runTokenPairsScript();
+  provider._websocket.on('error', (err) => {
+    console.error("WebSocket connection error occurred:", err);
+    clearTimeout(reconnectTimeout);
+    clearTimeout(pingTimeout);
+    connectToProvider();
+  });
+
   startAllListeners();
 }
+
+
 
 connectToProvider();

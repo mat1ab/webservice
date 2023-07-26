@@ -5,15 +5,17 @@ const PROJ_ROOT = process.env.PROJ_ROOT;
 const config = require(`${PROJ_ROOT}/src/config/config.json`);
 const gNftAbi = require(`${PROJ_ROOT}/src/abis/gNft_abi.json`);
 const address = config.gNftAddress;
-let provider = new ethers.providers.WebSocketProvider('wss://testnet.era.zksync.dev/ws');
-
 const listenerId = path.basename(__filename, '.js'); 
 
 AWS.config.update({
   region: config.awsRegion,
 });
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
-const contract = new ethers.Contract(address, gNftAbi, provider);
+
+function getContract(provider) {
+    return new ethers.Contract(address, gNftAbi, provider);
+}
+
 
 async function handleEvent(tokenId, to, from) {
     console.log('Transfer event detected:');
@@ -119,8 +121,9 @@ async function getLastBlock() {
   }
   
 
-  async function getPastEvents() {
+  async function getPastEvents(provider) {
     let lastBlock = await getLastBlock();
+    let contract = getContract(provider);
     let filter = contract.filters.Transfer();
   
     let events = await contract.queryFilter(filter, lastBlock + 1, 'latest');
@@ -144,13 +147,12 @@ async function getLastBlock() {
   }
   
 
-getPastEvents().catch(console.error);
 
 
-async function runHistoryDataScript() {
+async function runHistoryDataScript(provider) {
     try {
         console.log('Starting to get past events...');
-        await getPastEvents();
+        await getPastEvents(provider);
         console.log('Past events fetched and processed.');
     } catch (error) {
         console.error('Error running history data script:', error);

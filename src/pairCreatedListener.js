@@ -41,11 +41,13 @@ async function handlePairCreatedEvent(token0, token1, pairAddress, event, provid
 }
 
 async function start(provider) {
-console.log('xxxxxxxxxxxpairCreated');
   let factory = new ethers.Contract(factoryAddress, factoryAbi, provider);
-  factory.on("PairCreated", async (token0, token1, pairAddress, event) => {
-    await handlePairCreatedEvent(token0, token1, pairAddress, event, provider);
-  });
+  factory.on("PairCreated", (token0, token1, pairAddress, event) => {
+    handlePairCreatedEvent(token0, token1, pairAddress, event, provider)
+        .catch(err => {
+            console.error('Error handling PairCreated event:', err);
+        });
+});
 }
 
 module.exports = {

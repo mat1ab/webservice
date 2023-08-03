@@ -16,7 +16,6 @@ function getContract(provider) {
     return new ethers.Contract(address, gNftAbi, provider);
 }
 
-
 async function handleEvent(tokenId, to, from) {
     console.log('Transfer event detected:');
     console.log(`- Gnft Token ID: ${tokenId}`);
@@ -51,9 +50,9 @@ async function handleEvent(tokenId, to, from) {
                 ReturnValues: "UPDATED_NEW"
             };
             await dynamoDB.update(updateParamsFrom).promise();
-            console.log("从旧的用户地址成功移除了tokenId。");
+            console.log("Successfully removed tokenId from old user address.");
         } catch (err) {
-            console.error("无法从'from'地址移除tokenId。错误信息：", err);
+            console.error("Failed to remove tokenId from 'from' address. Error message:", err);
         }
     }
 
@@ -85,9 +84,9 @@ async function handleEvent(tokenId, to, from) {
         };
     
         await dynamoDB.update(updateParamsTo).promise();
-        console.log("成功向新的用户地址添加了tokenId。");
+        console.log("Successfully added tokenId to new user address.");
     } catch (err) {
-        console.error("无法向'to'地址添加tokenId。错误信息：", err);
+        console.error("Failed to add tokenId to 'to' address. Error message:", err);
     }
 }
 
@@ -108,7 +107,7 @@ async function getLastBlock() {
     return result.Item.blockNumber ? result.Item.blockNumber : 0;
   }
   
-  async function setLastBlock(blockNumber) {
+async function setLastBlock(blockNumber) {
     const putParams = {
       TableName: 'LastProcessedBlock',
       Item: {
@@ -118,10 +117,9 @@ async function getLastBlock() {
     };
   
     await dynamoDB.put(putParams).promise();
-  }
-  
+}
 
-  async function getPastEvents(provider) {
+async function getPastEvents(provider) {
     let lastBlock = await getLastBlock();
     let contract = getContract(provider);
     let filter = contract.filters.Transfer();
@@ -144,10 +142,7 @@ async function getLastBlock() {
     if (newLastBlock > lastBlock) {
       await setLastBlock(newLastBlock);
     }
-  }
-  
-
-
+}
 
 async function runHistoryDataScript(provider) {
     try {
@@ -162,4 +157,3 @@ async function runHistoryDataScript(provider) {
 module.exports = {
     runHistoryDataScript
 };
-

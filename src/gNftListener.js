@@ -18,7 +18,6 @@ async function handleEvent(tokenId, to, from) {
     console.log(`- To: ${to}`);
     console.log(`- From: ${from}`);
 
-    // 如果from地址存在且不为0
     if (from && from !== '0x0000000000000000000000000000000000000000') {
         try {
             const getParamsFrom = {
@@ -28,16 +27,13 @@ async function handleEvent(tokenId, to, from) {
                 }
             };
             let resultFrom = await dynamoDB.get(getParamsFrom).promise();
-            // 如果tokenIds存在，则将其转化为数组，否则初始化为空数组
             let existingTokenIdsFrom = resultFrom.Item && resultFrom.Item.tokenIds ? resultFrom.Item.tokenIds : [];
 
-            // 从列表中移除当前的tokenId
             let tokenIdIndex = existingTokenIdsFrom.indexOf(Number(tokenId));
             if (tokenIdIndex > -1) {
                 existingTokenIdsFrom.splice(tokenIdIndex, 1);
             }
 
-            // 更新from地址的tokenId列表
             const updateParamsFrom = {
                 TableName: 'gNftTransferEvents',
                 Key: {
@@ -50,13 +46,11 @@ async function handleEvent(tokenId, to, from) {
                 ReturnValues: "UPDATED_NEW"
             };
             await dynamoDB.update(updateParamsFrom).promise();
-            console.log("从旧的用户地址成功移除了tokenId。");
         } catch (err) {
-            console.error("无法从'from'地址移除tokenId。错误信息：", err);
+            console.error("Gnft handleEvent", err);
         }
     }
 
-    // 处理to地址
     try {
         const getParamsTo = {
             TableName: 'gNftTransferEvents',
@@ -66,12 +60,9 @@ async function handleEvent(tokenId, to, from) {
         };
 
         const resultTo = await dynamoDB.get(getParamsTo).promise();
-        // 如果tokenIds存在，则将其转化为数组，否则初始化为空数组
         let existingTokenIdsTo = resultTo.Item && resultTo.Item.tokenIds ? resultTo.Item.tokenIds : [];
     
-        // 检查tokenId是否已经存在于existingTokenIdsTo
         if (!existingTokenIdsTo.includes(Number(tokenId))) {
-            // 将新的tokenId添加到existingTokenIds列表
             existingTokenIdsTo.push(Number(tokenId));
         }
 
@@ -88,9 +79,8 @@ async function handleEvent(tokenId, to, from) {
         };
     
         await dynamoDB.update(updateParamsTo).promise();
-        console.log("成功向新的用户地址添加了tokenId。");
     } catch (err) {
-        console.error("无法向'to'地址添加tokenId。错误信息：", err);
+        console.error("Gnft handleEvent", err);
     }
 }
 async function start(provider) {

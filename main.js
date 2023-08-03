@@ -21,7 +21,6 @@ const KEEP_ALIVE_CHECK_INTERVAL = 7500;
 
 async function getSpNftHistoryData() {
   try {
-     // Schedule the script to run every 60 minutes
      await spNftScript.runHistoryDataScript(provider);
 
     cron.schedule('0 * * * *', async () => {
@@ -39,7 +38,6 @@ async function getSpNftHistoryData() {
 
 async function getGNftHistoryData() {
   try {
-     // Schedule the script to run every 60 minutes
      await gNftScript.runHistoryDataScript(provider);
 
     cron.schedule('0 * * * *', async () => {
@@ -110,7 +108,6 @@ async function startGNftListener() {
 async function runTokenPairsScript() {
   try {
     await tokenPairsScript.runTokenPairsScript(provider);
-    // Schedule the script to run every 30 minutes
     cron.schedule('*/30 * * * *', async () => {
         try {
             await tokenPairsScript.runTokenPairsScript(provider);

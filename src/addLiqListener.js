@@ -67,39 +67,55 @@ async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNum
 }
 
 async function handleMintEvent(sender, amount0, amount1, event) {
+  logger.info('Entering handleMintEvent function');
+  
   const timestamp = Math.floor(Date.now() / 1000);
   const transactionHash = event.transactionHash;
-  const userID = await getTransactionDetails(transactionHash);
 
+  try {
+      const userID = await getTransactionDetails(transactionHash);
+      logger.info(`UserID fetched for Mint: ${userID}`);
 
-  await storeEventToDynamoDB(
-    userID,
-    transactionHash,
-    'Mint',
-    event.blockNumber,
-    JSON.stringify(event),
-    timestamp,
-    event.address
-  );
-  logger.info(`Event object: ${JSON.stringify(event, null, 2)}`);
+      await storeEventToDynamoDB(
+          userID,
+          transactionHash,
+          'Mint',
+          event.blockNumber,
+          JSON.stringify(event),
+          timestamp,
+          event.address
+      );
+      logger.info(`Mint event object stored: ${JSON.stringify(event, null, 2)}`);
+  } catch (error) {
+      logger.error(`Error in handleMintEvent: ${error}`);
+  }
 }
 
 async function handleBurnEvent(sender, amount0, amount1, to, event) {
+  logger.info('Entering handleBurnEvent function');
+  
   const timestamp = Math.floor(Date.now() / 1000);
   const transactionHash = event.transactionHash;
-  const userID = await getTransactionDetails(transactionHash);
 
-  await storeEventToDynamoDB(
-    userID,
-    transactionHash,
-    'Burn',
-    event.blockNumber,
-    JSON.stringify(event),
-    timestamp,
-    event.address
-  );
-  logger.info(`Event object: ${JSON.stringify(event, null, 2)}`);
+  try {
+      const userID = await getTransactionDetails(transactionHash);
+      logger.info(`UserID fetched for Burn: ${userID}`);
+
+      await storeEventToDynamoDB(
+          userID,
+          transactionHash,
+          'Burn',
+          event.blockNumber,
+          JSON.stringify(event),
+          timestamp,
+          event.address
+      );
+      logger.info(`Burn event object stored: ${JSON.stringify(event, null, 2)}`);
+  } catch (error) {
+      logger.error(`Error in handleBurnEvent: ${error}`);
+  }
 }
+
 
 async function start(provider) {
   const listenForMintBurnEvents = async () => {

@@ -42,7 +42,22 @@ async function getTransactionDetails(transactionHash) {
   }
 }
 
+async function getUserLpBalance(pairAddress, userAddress) {
+  const pairContract = new ethers.Contract(pairAddress, pairAbi, provider);
+  try {
+    const balanceBigNumber = await pairContract.balanceOf(userAddress);
+    const decimals = await pairContract.decimals(); // 获取代币的小数位数
+    const adjustedBalance = balanceBigNumber.div(ethers.BigNumber.from("10").pow(decimals));
+    return adjustedBalance.toString(); 
+  } catch (error) {
+    logger.error(`Error fetching LP balance for user ${userAddress} with pair address ${pairAddress}: ${error}`);
+    return "0";
+  }
+}
+
+
 async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNumber, eventData, timestamp, pairAddress) {
+  const lpBalance = await getUserLpBalance(pairAddress, userID);
   const params = {
     TableName: 'ADP1',
     Item: {
@@ -52,7 +67,8 @@ async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNum
       'BlockNumber': blockNumber,
       'EventData': eventData,
       'Timestamp': timestamp,
-      'PairAddress': pairAddress
+      'PairAddress': pairAddress,
+      'LPBalance': lpBalance 
     }
   };
 

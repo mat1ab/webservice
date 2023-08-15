@@ -10,6 +10,8 @@ const PairCreatedListener = require(`${PROJ_ROOT}/src/pairCreatedListener`)
 const tokenPairsScript = require(`${PROJ_ROOT}/src/utils/tokenPairsScript.js`);
 const BasePoolListener = require(`${PROJ_ROOT}/src/basePoolListener.js`)
 const GNftListener = require(`${PROJ_ROOT}/src/gNftListener.js`)
+const AtCoreRouterListener = require(`${PROJ_ROOT}/src/atCoreRouterListener.js`)
+const EsArrListener = require(`${PROJ_ROOT}/src/esArrListener.js`)
 
 const providerUrl = 'wss://testnet.era.zksync.dev/ws';
 let provider;
@@ -17,7 +19,6 @@ let reconnectTimeout = null;
 
 const EXPECTED_PONG_BACK = 15000;  
 const KEEP_ALIVE_CHECK_INTERVAL = 7500;  
-
 
 async function getSpNftHistoryData() {
   try {
@@ -61,6 +62,28 @@ async function startSwapListener() {
     logger.error(`Error occurred in SwapListener.start: ${err}`);
     console.error("Error occurred in SwapListener.start:", err);
     setTimeout(startSwapListener, 30000);  // 30 seconds
+  }
+}
+
+async function startEsArrListener(){
+  logger.info('EsArrListener is starting');
+  try {
+    await EsArrListener.start(provider);
+  } catch (err) {
+    logger.error(`Error occurred in SwapListener.start: ${err}`);
+    console.error("Error occurred in SwapListener.start:", err);
+    setTimeout(startEsArrListener, 30000);  // 30 seconds
+  }
+}
+
+async function startAtCoreRouterListener() {
+  logger.info('atCoreRouterListener is starting');
+  try {
+    await AtCoreRouterListener.start(provider);
+  } catch (err) {
+    logger.error(`Error occurred in AtCoreRouterListener.start: ${err}`);
+    console.error("Error occurred in AtCoreRouterListener.start:", err);
+    setTimeout(startAtCoreRouterListener, 30000);  // 30 seconds
   }
 }
 
@@ -127,10 +150,12 @@ async function startAllListeners() {
   startGNftListener();
   startPairCreatedListener();
   startSwapListener();
+  startAtCoreRouterListener();
   startAddLiqListener();
   startBasePoolListener();
+  startEsArrListener();
+  
 }
-
 
 function connectToProvider() {
   if (reconnectTimeout) {
@@ -180,9 +205,6 @@ function connectToProvider() {
     clearTimeout(pingTimeout);
     connectToProvider();
   });
-
 }
-
-
 
 connectToProvider();

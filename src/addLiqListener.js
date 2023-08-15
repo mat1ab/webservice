@@ -14,8 +14,6 @@ AWS.config.update({
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
-let counter = 0;
-
 async function loadPairAddressesFromDB() {
   const params = {
       TableName: 'TokenPairs',
@@ -69,11 +67,9 @@ async function storeEventToDynamoDB(userID, transactionHash, eventName, blockNum
 }
 
 async function handleMintEvent(sender, amount0, amount1, event) {
-  counter++;
   const timestamp = Math.floor(Date.now() / 1000);
   const transactionHash = event.transactionHash;
   const userID = await getTransactionDetails(transactionHash);
-  logger.info(`Listening no.#${counter} Mint event at ${timestamp}:`);
 
 
   await storeEventToDynamoDB(
@@ -89,11 +85,9 @@ async function handleMintEvent(sender, amount0, amount1, event) {
 }
 
 async function handleBurnEvent(sender, amount0, amount1, to, event) {
-  counter++;
   const timestamp = Math.floor(Date.now() / 1000);
   const transactionHash = event.transactionHash;
   const userID = await getTransactionDetails(transactionHash);
-  logger.info(`Listening no.#${counter} Burn event at ${timestamp}:`);
 
   await storeEventToDynamoDB(
     userID,
@@ -108,7 +102,6 @@ async function handleBurnEvent(sender, amount0, amount1, to, event) {
 }
 
 async function start(provider) {
-  console.log('xxxxxxxxxxxaddLiqListener')
   const listenForMintBurnEvents = async () => {
     const pairAddresses = await loadPairAddressesFromDB();
     pairAddresses.forEach(pairAddress => {

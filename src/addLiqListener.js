@@ -106,16 +106,20 @@ async function start(provider) {
     const pairAddresses = await loadPairAddressesFromDB();
     pairAddresses.forEach(pairAddress => {
       const pairContract = new ethers.Contract(pairAddress, pairAbi, provider);
-      pairContract.on('Mint', handleMintEvent);
-      pairContract.on('Burn', handleBurnEvent);
+      pairContract.on('Mint', (sender, amount0, amount1, event) => {
+        logger.info('Mint event detected');
+        handleMintEvent(sender, amount0, amount1, event);
+    });
+    
+    pairContract.on('Burn', (sender, amount0, amount1, to, event) => {
+        logger.info('Burn event detected');
+        handleBurnEvent(sender, amount0, amount1, to, event);
+    });
     });
   };
 
   await listenForMintBurnEvents();
 
-  setInterval(async () => {
-    await listenForMintBurnEvents();
-  }, 60000);
 }
 
 module.exports = {
